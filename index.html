@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0F1A">
+<title>SIGIM · COSJ</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#0A0F1A;--bg-grid:#0C1220;--panel:#111A2B;--panel-alt:#162134;--panel-raised:#1B2740;
+  --border:#24324B;--border-soft:#1B2740;--text:#E7ECF5;--text-dim:#8CA0C2;--text-faint:#55668A;
+  --amber:#F2A93C;--cyan:#3FC7E0;
+  --c-operativo:#29C46A;--c-operativo-obs:#FF8A2B;--c-falla-elec:#3E8CFF;--c-falla-mec:#98A6C2;
+  --c-sin-motor:#F14848;--c-ver-obs:#E062E8;--c-sin-datos:#47526B;
+  --font-ui:"Segoe UI",Tahoma,Arial,sans-serif;--font-mono:"Consolas","Cascadia Mono","Courier New",monospace;
+  --radius:3px;
+}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:radial-gradient(1200px 700px at 15% -10%,#101c33 0,transparent 60%),
+  repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0,rgba(255,255,255,.012) 1px,transparent 1px,transparent 24px),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0,rgba(255,255,255,.012) 1px,transparent 1px,transparent 24px),
+  var(--bg);color:var(--text);font-family:var(--font-ui);font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:var(--bg-grid)}
+::-webkit-scrollbar-thumb{background:#2A3A57;border-radius:5px}::-webkit-scrollbar-thumb:hover{background:#37507a}
+button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inherit}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#btn-hamburger{display:none;flex-shrink:0;width:38px;height:38px;align-items:center;justify-content:center;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px}
+#btn-hamburger:hover{border-color:var(--amber);color:var(--amber)}
+#topbar{display:flex;align-items:center;gap:14px;padding:0 18px;padding-top:env(safe-area-inset-top);height:calc(56px + env(safe-area-inset-top));min-height:calc(56px + env(safe-area-inset-top));background:linear-gradient(180deg,#131E32,#0F1729);border-bottom:1px solid var(--border);position:relative;z-index:20}
+#topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--amber),transparent 70%);opacity:.7}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:34px;height:34px;border-radius:6px;background:radial-gradient(circle at 30% 30%,#FFD98A,var(--amber) 60%,#7a5314 100%);display:flex;align-items:center;justify-content:center;font-weight:800;color:#241905;font-size:10px;box-shadow:0 0 0 1px rgba(242,169,60,.3),0 0 14px rgba(242,169,60,.25);flex-shrink:0}
+.brand-text{line-height:1.15}
+.brand-text .t1{font-size:14px;font-weight:700;letter-spacing:.3px}
+.brand-text .t2{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+#area-switcher{display:flex;align-items:center;gap:8px;background:var(--panel-alt);border:1px solid var(--border);border-radius:20px;padding:4px 6px 4px 12px}
+#area-switcher label{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--text-dim)}
+#area-select{background:transparent;border:none;color:var(--amber);font-family:inherit;font-size:12px;font-weight:700;padding:6px 4px;outline:none;cursor:pointer}
+#area-select option{background:var(--panel-alt);color:var(--text)}
+#topbar .spacer{flex:1}
+#sync-indicator{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:12px;background:var(--panel-alt);border:1px solid var(--border);font-size:10px;color:var(--text-dim)}
+#sync-indicator .sync-dot{width:8px;height:8px;border-radius:50%;background:#F14848;box-shadow:0 0 6px #F14848;transition:background .3s}
+#sync-indicator.online .sync-dot{background:var(--c-operativo);box-shadow:0 0 6px var(--c-operativo)}
+#sync-indicator.syncing .sync-dot{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:pulseDot 1s infinite}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.3}}
+#clock-wrap{text-align:right;margin-right:6px}
+#clock{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--amber);letter-spacing:1px}
+#dateline{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel-alt);border:1px solid var(--border);padding:5px 10px;border-radius:20px;font-size:11.5px;color:var(--text-dim)}
+.user-chip input{background:transparent;border:none;color:var(--text);font-size:12px;width:130px;outline:none}
+.user-dot{width:7px;height:7px;border-radius:50%;background:var(--c-operativo);box-shadow:0 0 6px var(--c-operativo);flex-shrink:0}
+#body-row{flex:1;display:flex;min-height:0}
+#sidebar{width:200px;min-width:200px;background:var(--panel);border-right:1px solid var(--border);padding:14px 10px;padding-bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:3px}
+.nav-label{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1.2px;padding:8px 10px 4px}
+.nav-btn{display:flex;align-items:center;gap:10px;background:transparent;border:1px solid transparent;color:var(--text-dim);padding:11px 10px;border-radius:var(--radius);text-align:left;font-size:12.5px;font-weight:600;transition:background .12s,color .12s,border-color .12s;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.nav-btn .ic{width:16px;text-align:center;opacity:.85}
+.nav-btn:hover{background:var(--panel-alt);color:var(--text)}
+.nav-btn.active{background:linear-gradient(90deg,rgba(242,169,60,.14),rgba(242,169,60,.03));color:var(--amber);border-color:rgba(242,169,60,.25)}
+#sidebar .divider{height:1px;background:var(--border);margin:8px 4px}
+#sidebar .footer-note{margin-top:auto;font-size:9.5px;color:var(--text-faint);padding:8px 10px;line-height:1.5;border-top:1px solid var(--border);padding-top:12px}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+#metric-strip{display:flex;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#0F1830,transparent);flex-wrap:wrap}
+.metric-card{flex:1;min-width:130px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;position:relative;overflow:hidden}
+.metric-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--metric-c,var(--amber))}
+.metric-val{font-family:var(--font-mono);font-size:21px;font-weight:700;line-height:1.1}
+.metric-lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+.metric-card.big .metric-val{font-size:28px}
+#toolbar{border-bottom:1px solid var(--border)}
+.toolbar-row{display:flex;align-items:center;gap:8px;padding:9px 18px;flex-wrap:wrap}
+.toolbar-row + .toolbar-row{border-top:1px dashed var(--border-soft)}
+.toolbar-lbl{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-right:2px}
+/* Toolbar con details/summary colapsables */
+.toolbar-details{border-bottom:1px dashed var(--border-soft)}
+.toolbar-details > summary{list-style:none;cursor:pointer;padding:12px 18px;user-select:none;display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.7px;font-weight:700;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.toolbar-details > summary::-webkit-details-marker{display:none}
+.toolbar-details > summary::before{content:"▸";font-size:10px;color:var(--amber);transition:transform .2s;display:inline-block}
+.toolbar-details[open] > summary::before{content:"▾"}
+.toolbar-details > summary:hover{color:var(--text)}
+.toolbar-details > summary .badge-activo{background:rgba(242,169,60,.2);color:var(--amber);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.5px}
+.toolbar-details > div{padding:0 18px 12px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1px solid var(--border);background:var(--panel);color:var(--text-dim);padding:8px 12px;border-radius:20px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;transition:all .12s;min-height:36px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.chip .sw{width:8px;height:8px;border-radius:50%}
+.chip-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:rgba(255,255,255,.08);border-radius:8px;font-size:9.5px;font-weight:800;color:inherit}
+.chip.active .chip-count{background:rgba(242,169,60,.25)}
+.chip:hover{border-color:#37507a;color:var(--text)}
+.chip.active{background:rgba(242,169,60,.12);border-color:var(--amber);color:var(--amber)}
+#search-box{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:6px 12px;min-width:220px}
+#search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%}
+#search-box .ic{color:var(--text-faint);font-size:12px}
+.btn{border:1px solid var(--border);background:var(--panel-alt);color:var(--text);padding:8px 14px;border-radius:var(--radius);font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;min-height:38px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn:hover{border-color:#37507a;background:var(--panel-raised)}
+.btn.primary{background:linear-gradient(180deg,#F2B75C,#D98F22);border-color:#D98F22;color:#241905}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.danger{border-color:#7a2323;color:#ff9d9d}
+.btn.small{padding:6px 10px;font-size:10.5px;min-height:32px}
+#content{flex:1;overflow-y:auto;padding:16px 18px 40px;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+#comp-grid{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
+@media (min-width:600px){#comp-grid{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1024px){#comp-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
+.comp-card{background:linear-gradient(180deg,var(--panel),var(--panel-alt));border:1px solid var(--border);border-radius:5px;overflow:hidden;position:relative;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.comp-card:hover{border-color:#37507a;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.comp-card.has-alarm{border-color:rgba(241,72,72,.5)}
+.comp-card.has-alarm::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(241,72,72,.35);animation:alarm-pulse 2.2s ease-in-out infinite}
+.comp-card.is-active{border-color:rgba(41,196,106,.6);box-shadow:0 0 20px rgba(41,196,106,.15)}
+.comp-card.is-active::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:5px;box-shadow:inset 0 0 0 2px rgba(41,196,106,.4);animation:active-pulse 2s ease-in-out infinite}
+@keyframes active-pulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(41,196,106,.25)}50%{box-shadow:inset 0 0 20px 2px rgba(41,196,106,.55)}}
+.comp-card.is-standby{border-color:rgba(242,169,60,.6);box-shadow:0 0 20px rgba(242,169,60,.15)}
+.comp-card.is-standby::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:5px;box-shadow:inset 0 0 0 2px rgba(242,169,60,.4);animation:standby-pulse 2s ease-in-out infinite}
+@keyframes standby-pulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(242,169,60,.25)}50%{box-shadow:inset 0 0 20px 2px rgba(242,169,60,.55)}}
+.comp-card.fuera-servicio{filter:grayscale(.55);opacity:.72}
+.comp-card.fuera-servicio::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:5px;box-shadow:inset 0 0 0 2px rgba(241,72,72,.5);animation:alarm-pulse 2.2s ease-in-out infinite}
+@keyframes alarm-pulse{0%,100%{box-shadow:inset 0 0 0 1px rgba(241,72,72,.25)}50%{box-shadow:inset 0 0 14px 1px rgba(241,72,72,.45)}}
+.comp-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(0,0,0,.22);border-bottom:1px solid var(--border-soft);gap:8px}
+.comp-head .name-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
+.comp-head .name{font-family:var(--font-mono);font-weight:700;font-size:15px;letter-spacing:.5px}
+.badge-fuera{font-size:8.5px;font-weight:800;letter-spacing:.5px;color:#F14848;background:rgba(241,72,72,.14);border:1px solid rgba(241,72,72,.4);padding:1px 6px;border-radius:8px;width:fit-content;text-transform:uppercase}
+.badge-op{font-size:8.5px;font-weight:800;letter-spacing:.5px;color:#29C46A;background:rgba(41,196,106,.12);border:1px solid rgba(41,196,106,.35);padding:1px 6px;border-radius:8px;width:fit-content;text-transform:uppercase}
+.badge-standby{font-size:8.5px;font-weight:800;letter-spacing:.5px;color:var(--amber);background:rgba(242,169,60,.12);border:1px solid rgba(242,169,60,.35);padding:1px 6px;border-radius:8px;width:fit-content;text-transform:uppercase}
+.head-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.gear-btn{width:34px;height:34px;border-radius:6px;border:1px solid var(--border);background:var(--panel-alt);color:var(--text-dim);font-size:15px;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.gear-btn:hover{color:var(--amber);border-color:var(--amber)}
+.comp-head .ring{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9.5px;font-weight:700;background:conic-gradient(var(--ring-c,#29C46A) calc(var(--pct,100)*1%),#232f47 0);flex-shrink:0}
+.comp-head .ring-inner{width:24px;height:24px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.motor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;padding:10px 12px 8px}
+.motor-led{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.02);border:1px solid var(--border-soft);border-radius:3px;padding:8px;text-align:left;color:var(--text);transition:background .12s,border-color .12s;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.motor-led:hover{background:rgba(255,255,255,.05);border-color:#37507a}
+.led-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;background:var(--dot,#444);box-shadow:0 0 7px var(--dot,#444),inset 0 0 2px rgba(255,255,255,.5)}
+.led-dot.blink{animation:led-blink 1.4s steps(1) infinite}
+@keyframes led-blink{50%{opacity:.25}}
+.led-label{font-family:var(--font-mono);font-size:11.5px;font-weight:600}
+.led-status{font-size:9px;color:var(--text-dim);margin-left:auto;text-transform:uppercase;letter-spacing:.3px;text-align:right}
+.aux-strip{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 12px;border-top:1px dashed var(--border-soft);margin-top:2px;padding-top:9px}
+.aux-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.02);border:1px solid var(--border-soft);border-radius:14px;padding:6px 10px 6px 8px;font-size:9.5px;color:var(--text-dim);font-weight:600;min-height:36px;touch-action:manipulation}
+.aux-pill:hover{border-color:#37507a;color:var(--text)}
+.aux-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--dot,#444);box-shadow:0 0 5px var(--dot,#444)}
+.aux-pill .dot.blink{animation:led-blink 1.4s steps(1) infinite}
+#legend{display:flex;gap:14px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--border);background:var(--panel);font-size:10.5px;color:var(--text-dim)}
+#legend .item{display:flex;align-items:center;gap:6px}
+#legend .dot{width:9px;height:9px;border-radius:50%}
+.data-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.data-table th{text-align:left;padding:8px 10px;background:var(--panel-alt);color:var(--text-dim);text-transform:uppercase;font-size:9.5px;letter-spacing:.5px;border-bottom:1px solid var(--border);position:sticky;top:0}
+.data-table td{padding:8px 10px;border-bottom:1px solid var(--border-soft);vertical-align:top}
+.clickable-row{cursor:pointer}
+.clickable-row:hover td{background:rgba(255,255,255,.06)!important}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;border:1px solid var(--tag-c,#444);color:var(--tag-c,#fff);background:color-mix(in srgb,var(--tag-c,#444) 14%,transparent)}
+.mono{font-family:var(--font-mono)}
+.dim{color:var(--text-dim)}
+.table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:auto;max-height:100%}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+.section-title h2{font-size:14px;margin:0;font-weight:700}
+.section-title .sub{font-size:11px;color:var(--text-dim);margin-top:2px;font-weight:400}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text-faint)}
+.empty-state .ic{font-size:30px;margin-bottom:10px;opacity:.5}
+#overlay{position:fixed;inset:0;background:rgba(4,7,14,.55);backdrop-filter:blur(1px);display:none;z-index:100}
+#overlay.open{display:block}
+#drawer{position:fixed;top:0;right:-100%;width:min(420px,100%);height:100%;background:var(--panel);border-left:1px solid var(--border);box-shadow:-20px 0 40px rgba(0,0,0,.4);transition:right .22s ease;z-index:101;display:flex;flex-direction:column}
+#drawer.open{right:0}
+.drawer-head{padding:16px 18px;border-bottom:1px solid var(--border);background:var(--panel-alt)}
+.drawer-head .eyebrow{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+.drawer-head h3{margin:4px 0 0;font-family:var(--font-mono);font-size:19px}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 18px;-webkit-overflow-scrolling:touch}
+.drawer-foot{padding:14px 18px;padding-bottom:calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;font-weight:700}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.status-opt{display:flex;align-items:center;gap:8px;padding:10px;border-radius:4px;border:1px solid var(--border);background:var(--panel-alt);font-size:11.5px;font-weight:600;color:var(--text-dim);min-height:44px;touch-action:manipulation}
+.status-opt:hover{border-color:#37507a}
+.status-opt.selected{border-color:var(--opt-c);color:var(--text);background:color-mix(in srgb,var(--opt-c) 12%,var(--panel-alt))}
+.status-opt .dot{width:9px;height:9px;border-radius:50%;background:var(--opt-c);flex-shrink:0}
+.field textarea,.field input[type=text],.field input[type=number],.field input[type=date]{width:100%;background:var(--bg-grid);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:10px;font-size:16px;outline:none;resize:vertical}
+.field textarea:focus,.field input:focus,.field select:focus{border-color:var(--amber)}
+.amp-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.amp-row .field{margin-bottom:0}
+.amp-row label{text-align:center}
+.meta-line{font-size:10.5px;color:var(--text-faint);margin-top:-8px;margin-bottom:16px}
+.mini-title{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--amber);margin-bottom:10px}
+.inline-info{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel-alt);border:1px solid var(--border-soft);border-radius:4px;padding:8px 10px;font-size:11px;color:var(--text-dim)}
+#toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel-raised);border:1px solid var(--amber);color:var(--text);padding:10px 18px;border-radius:6px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;opacity:0;pointer-events:none;transition:all .2s;z-index:200;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#modal-overlay{position:fixed;inset:0;background:rgba(4,7,14,.6);display:none;align-items:center;justify-content:center;z-index:150}
+#modal-overlay.open{display:flex}
+.modal-box{width:520px;max-width:94vw;max-height:92vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:6px;box-shadow:0 30px 60px rgba(0,0,0,.5);-webkit-overflow-scrolling:touch}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--panel-alt);position:sticky;top:0;z-index:1}
+.modal-head h3{margin:0;font-size:14px}
+.modal-body{padding:16px 18px}
+.modal-foot{padding:14px 18px;padding-bottom:calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--panel);z-index:1}
+.close-x{background:transparent;border:none;color:var(--text-dim);font-size:22px;line-height:1;padding:6px 8px;min-height:40px;min-width:40px}
+.close-x:hover{color:var(--text)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.check-row{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text);padding:6px 0}
+.check-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--amber);flex-shrink:0}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+select{width:100%;background:var(--bg-grid);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:10px;font-size:16px;outline:none;appearance:none;-webkit-appearance:none}
+.report-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:18px}
+.report-card{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:14px}
+.report-card h4{margin:0 0 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11px}
+.bar-row .lbl{width:110px;flex-shrink:0;color:var(--text-dim)}
+.bar-track{flex:1;height:8px;background:var(--bg-grid);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-row .val{width:34px;text-align:right;font-family:var(--font-mono);font-size:10.5px}
+.pill-status{display:inline-block;padding:2px 8px;border-radius:8px;font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+@media print{*{-webkit-print-color-adjust:exact!important;color-adjust:exact!important;print-color-adjust:exact!important}#sidebar,#topbar,#toolbar,#metric-strip,.btn,#legend,.report-nav,#btn-hamburger,#sidebar-overlay{display:none!important}body{background:#fff!important;color:#000!important;overflow:visible!important}#content{overflow:visible!important;padding:0!important}.report-card,.table-wrap,.comp-card{border-color:#ccc!important;background:#fff!important;page-break-inside:avoid}canvas{max-width:100%!important}}
+#sidebar-overlay{position:fixed;inset:0;background:rgba(4,7,14,.6);z-index:140;display:none}
+#sidebar-overlay.open{display:block}
+@media (max-width:1180px){#area-switcher label{display:none}}
+@media (max-width:980px){#sidebar{width:64px;min-width:64px;padding:14px 6px}#sidebar .lbl-text,.nav-label,.footer-note{display:none}.nav-btn{justify-content:center;padding:11px 6px}.nav-btn .ic{font-size:17px}.brand-text .t1{font-size:12px}.brand-text .t2{display:none}}
+@media (max-width:780px){#btn-hamburger{display:flex}#sidebar{position:fixed;top:0;left:0;bottom:0;z-index:150;width:260px;min-width:260px;padding:16px 10px;transform:translateX(-100%);transition:transform .22s ease;box-shadow:20px 0 50px rgba(0,0,0,.5)}#sidebar.open{transform:translateX(0)}#sidebar .lbl-text,#sidebar .nav-label,#sidebar .footer-note{display:block}#sidebar .nav-btn{justify-content:flex-start;padding:11px 10px}#topbar{padding:0 10px;gap:8px}.brand-text .t1{font-size:11.5px}.brand-text .t2{display:none}.brand-mark{width:28px;height:28px;font-size:9px}.user-chip{padding:4px 8px}.user-chip input{width:90px;font-size:14px}#clock-wrap{display:none}#sync-indicator .lbl-sync{display:none}#content{padding:12px 10px 90px}#metric-strip{padding:10px;gap:8px;overflow-x:auto;flex-wrap:nowrap}.metric-card{min-width:150px;flex-shrink:0}.toolbar-details > summary{padding:12px 10px}.toolbar-details > div{padding:0 10px 12px 10px}#legend{padding:8px 10px;gap:10px}.grid3{grid-template-columns:1fr 1fr}.modal-box{width:96vw;max-height:92vh}.modal-body{padding:14px}.data-table{min-width:640px}.section-title{flex-direction:column;align-items:flex-start;gap:6px}.report-grid{grid-template-columns:1fr!important}.report-card[style*="span 2"]{grid-column:auto!important}}
+@media (max-width:460px){.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr 1fr}.comp-head .name{font-size:13px}.chip{padding:6px 10px;font-size:10.5px}.btn{padding:8px 12px;font-size:11px}}
+/* Aviso de configuración Firebase */
+#firebase-warning{position:fixed;top:0;left:0;right:0;background:#7a2323;color:#fff;padding:10px 16px;font-size:12px;text-align:center;z-index:9999;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#firebase-warning a{color:#FFD98A;text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="firebase-warning" style="display:none;">
+  ⚠ Firebase no está configurado. El sistema funciona en modo local (sin sincronización).
+  Reemplaza <code>TU_API_KEY</code> y demás valores en <code>firebaseConfig</code> dentro del archivo para activar la sincronización.
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <button id="btn-hamburger" aria-label="Menú" title="Menú">☰</button>
+    <div class="brand">
+      <div class="brand-mark">SIGIM</div>
+      <div class="brand-text">
+        <div class="t1">SIGIM · COSJ</div>
+        <div class="t2" id="brand-area-label">Centro Operativo San Joaquín</div>
+      </div>
+    </div>
+    <div id="area-switcher">
+      <label for="area-select">Área</label>
+      <select id="area-select">
+        <option value="compresion">COMPRESIÓN</option>
+        <option value="separacion">SEPARACIÓN Y TRATAMIENTO</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <div id="sync-indicator" title="Estado de sincronización">
+      <span class="sync-dot"></span>
+      <span class="lbl-sync">Sync</span>
+    </div>
+    <div class="user-chip"><span class="user-dot"></span><input id="user-name" type="text" placeholder="Nombre del Usuario" value=""></div>
+    <div id="clock-wrap"><div id="clock">--:--:--</div><div id="dateline">--</div></div>
+  </div>
+  <div id="body-row">
+    <div id="sidebar">
+      <div class="nav-label">Navegación</div>
+      <button class="nav-btn active" data-view="dashboard"><span class="ic">◆</span><span class="lbl-text">Tablero General</span></button>
+      <button class="nav-btn" data-view="historial"><span class="ic">≡</span><span class="lbl-text">Historial de Cambios</span></button>
+      <button class="nav-btn" data-view="mantenimiento"><span class="ic">⚙</span><span class="lbl-text">Mantenimiento</span></button>
+      <button class="nav-btn" data-view="reportes"><span class="ic">▤</span><span class="lbl-text">Reportes</span></button>
+      <div class="divider"></div>
+      <div class="nav-label">Datos</div>
+      <button class="nav-btn" id="btn-export-json"><span class="ic">↓</span><span class="lbl-text">Respaldar (JSON)</span></button>
+      <button class="nav-btn" id="btn-import-json"><span class="ic">↑</span><span class="lbl-text">Restaurar respaldo</span></button>
+      <button class="nav-btn" id="btn-export-blank" style="color:#FF8A2B;"><span class="ic">⟲</span><span class="lbl-text">Plantilla en blanco (Reset)</span></button>
+      <input type="file" id="file-import" accept="application/json" style="display:none;">
+      <div class="footer-note">SIGIM v2.0 · Firebase Realtime<br><span id="fb-status">Modo local</span></div>
+    </div>
+    <div id="main">
+      <div id="metric-strip"></div>
+      <div id="toolbar"></div>
+      <div id="content"></div>
+      <div id="legend"></div>
+    </div>
+  </div>
+</div>
+<div id="sidebar-overlay"></div>
+<div id="overlay"></div>
+<div id="drawer">
+  <div class="drawer-head"><div class="eyebrow" id="drawer-eyebrow">SISTEMA · ELEMENTO</div><h3 id="drawer-title">—</h3></div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-foot">
+    <button class="btn ghost" id="drawer-cancel" style="flex:1;">Cancelar</button>
+    <button class="btn primary" id="drawer-save" style="flex:2;">Guardar cambio</button>
+  </div>
+</div>
+<div id="modal-overlay"><div class="modal-box" id="modal-box"></div></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+Chart.defaults.color='#8CA0C2';
+Chart.defaults.borderColor='#24324B';
+
+/* ============================================================
+   FIREBASE CONFIG — REEMPLAZA CON TUS VALORES
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "sigim-cosj.firebaseapp.com",
+  databaseURL: "https://sigim-cosj-default-rtdb.firebaseio.com",
+  projectId: "sigim-cosj",
+  storageBucket: "sigim-cosj.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+
+/* Detectar si Firebase está configurado */
+const FIREBASE_CONFIGURED = firebaseConfig.apiKey && firebaseConfig.apiKey !== "TU_API_KEY" && firebaseConfig.databaseURL && firebaseConfig.databaseURL.indexOf("https://")===0;
+let FB_OK = false;
+let dbRT = null;
+let authFB = null;
+let currentUser = null;
+let DB_REF = null;
+let UNSUBSCRIBE_DB = null;
+let __localChange = false;
+
+if (FIREBASE_CONFIGURED){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    dbRT = firebase.database();
+    authFB = firebase.auth();
+    FB_OK = true;
+    document.getElementById("fb-status").textContent = "Firebase conectado";
+  }catch(e){
+    console.error("Error inicializando Firebase:", e);
+    FB_OK = false;
+  }
+}
+if (!FB_OK){
+  document.getElementById("firebase-warning").style.display = "block";
+  document.getElementById("fb-status").textContent = "Modo local (sin sync)";
+}
+
+/* ============================================================
+   PLANTILLAS DE TAREAS (idénticas a SIGMA)
+   ============================================================ */
+const TAR={
+  INSTR_STD:["Verificar condiciones del equipo.","Inhibición del equipo.","Verificar y respaldar parámetros de calibración y configuración con equipo comunicador hand held.","Limpieza de contactos y sensores.","Ajuste de conexiones eléctricas.","Medir voltaje 24vdc.","Comparar lectura de instrumento con campo y lectura de escada.","Normalizar sistema.","Orden y limpieza."],
+  INSTR_STD2:["Verificar condiciones del equipo.","Inhibición del equipo.","Verificar y respaldar parámetros de calibración y configuración con equipo comunicador hand held.","Limpieza de contactos y sensores.","Drenaje y/o limpieza de cámaras.","Ajuste de conexiones eléctricas.","Medir voltaje 24vdc.","Comparar lectura de instrumento con campo y lectura de escada.","Normalizar sistema.","Orden y limpieza."],
+  INSTR_STD3:["VERIFICAR CONDICIONES DEL EQUIPO.","INHIBICIÓN DEL EQUIPO.","VERIFICAR Y RESPALDAR PARÁMETROS DE CALIBRACIÓN Y CONFIGURACIÓN CON EQUIPO COMPUTADOR PORTÁTIL.","LIMPIEZA DE SENSORES","AJUSTE DE CONEXIONES ELÉCTRICAS.","MEDIR VOLTAJE A BATERÍAS.","COMPARAR LECTURA DE INSTRUMENTO CON CAMPO Y LECTURA DE ESCADA.","NORMALIZAR SISTEMA.","ORDEN Y LIMPIEZA."],
+  VALV:["Verificar condiciones del equipo.","Revisión de aire de instrumento.","Ajuste de conectores de líneas tubing.","Revisión de regulador de aire de instrumento y actuador.","Revisión de voltaje 24vdc.","Revisión de solenoide.","Limpiar y ajustar componentes internos del posicionador (Conexionado eléctrico, relé, convertidor I/P).","Prueba funcional con hand held.","Normalizar sistema.","Orden y limpieza."],
+  VALV_SW:["Verificar condiciones del equipo.","Revisión de aire de instrumento.","Ajuste de conectores de líneas tubing.","Revisión de regulador de aire de instrumento y actuador.","Revisión de voltaje 24vdc.","Revisión de solenoide.","Limpiar y ajustar componentes internos del los swicthes de posicion.","Normalizar sistema.","Orden y limpieza."],
+  SOL:["Verificar condiciones del equipo.","Revisión de Ώ ohmiaje.","Verificar ajuste del conexionado, Empalmes, terminales.","Limpieza interna de conexionado eléctrico con limpia contacto electrónico.","Revisar condición del cableado.","Lubricación del cuerpo de solenoide con formula mecánica.","Revisión y corrección de fugas.","Prueba funcional de campo con sala de control.","Normalizar sistema.","Orden y limpieza."],
+  SW:["Verificar condiciones del equipo.","Verificar humedad interna de componentes y electrónica del instrumento.","Limpiar internamente el conexionado con limpia contacto electrónico.","Realizar ajuste del conexionado eléctrico.","Medir los parámetros de alimentación eléctrica del instrumento 24vdc.","Prueba funcional del equipo.","Normalizar sistema.","Orden y limpieza."],
+  SW_LVL:["Verificar condiciones del equipo.","Verificar humedad interna de componentes y electrónica del instrumento.","Limpiar internamente el conexionado con limpia contacto electrónico.","Realizar ajuste del conexionado eléctrico.","Medir los parámetros de alimentación eléctrica del instrumento 24vdc.","Revisión de los contactos por bajo y alto nivel.","Prueba funcional del equipo.","Normalizar sistema.","Orden y limpieza."],
+  BZT:["Verificar condiciones del equipo.","Inhibir equipo.","Verificar consumo.","Verificar voltaje 24vdc.","Limpieza y ajuste de contactos eléctricos.","Limpieza de lentes y/o sensores.","Verificar display por pérdida de nitidez y sustituir en caso de ser necesario.","Prueba funcional de campo con sala de control.","Normalizar sistema.","Orden y limpieza."],
+  VISOR:["Verificar condiciones equipo.","Bloquear sistema para despresurizar.","Desmontaje del equipo.","Remojo y lavado interno del visor.","Montaje y desbloqueo del sistema.","Normalizar sistema.","Orden y limpieza."],
+  VIB:["Verificar condiciones del equipo.","Verificar humedad interna de componentes y electrónica.","Limpiar internamente el conexionado con limpia contacto.","Realizar ajuste del conexionado eléctrico.","Medir los parámetros de alimentación eléctrica (24vdc).","Prueba funcional del equipo.","Normalizar sistema.","Orden y limpieza."],
+  VALV_IP:["VERIFICAR CONDICIONES DEL EQUIPO.","INHIBICIÓN DEL EQUIPO.","VERIFICAR Y RESPALDAR PARÁMETROS DE CALIBRACIÓN Y CONFIGURACIÓN CON EQUIPO COMUNICADOR HAND HELD.","LIMPIEZA DE CONTACTOS","AJUSTE DE CONEXIONES ELÉCTRICAS.","MEDIR VOLTAJE 24VDC.","COMPARAR LECTURA DE INSTRUMENTO CON CAMPO Y LECTURA DE ESCADA.","NORMALIZAR SISTEMA.","ORDEN Y LIMPIEZA."],
+  IP_IND:["Verificar condiciones del equipo / instrumento.","Verificar humedad interna de componentes y electrónica.","Limpieza interna del instrumento.","Ajuste de calibración tobera obturador.","Medición de continuidad de la bobina.","Revisión de Ω ohmiaje.","Prueba funcional.","Normalizar sistema.","Orden y limpieza."],
+  IP_POS:["Verificar condiciones del equipo / instrumento.","Verificar humedad interna de componentes y electrónica.","Limpieza interna de conexionado eléctrico con limpia contacto electrónico.","Verificar ajuste del conexionado, Empalmes, terminales.","Revisión de voltaje 24vdc.","Prueba funcional.","Normalizar sistema.","Orden y limpieza."],
+  ELEC_MOTOR:["DESENERGIZAR GAVETA DE CONTROL Y FUERZA","CUMPLIR CON EL PROCEDIMIENTO LOTO","MEDIR Y REGISTRAR RESISTENCIA DEL MOTOR","REALIZAR PRUEBA DE AISLAMIENTO DEL MOTOR","MEDIR Y REGISTRAR VOLTAJE ENTRE FASES DEL MOTOR","MEDIR Y REGISTRAR VOLTAJE ENTRE FASES Y TIERRA DEL MOTOR","AJUSTAR CONEXIONES ELÉCTRICAS EN ARRANCADOR","REALIZAR MANTENIMIENTO A LOS CONTACTOS DEL CONTACTOR","AJUSTAR CONEXIONES ELÉCTRICAS EN CAJA DE CONEXIONES DEL MOTOR","ENERGIZAR GAVETA DE CONTROL Y FUERZA","VERIFICAR SENTIDO DE GIRO CORRECTO DEL MOTOR","MEDIR CONSUMO ELÉCTRICO","REVISIÓN Y REEMPLAZO DE BOMBILLOS INDICADORES DE PARADA MARCHA Y FALLA. (SI LO AMERITA)","NORMALIZAR SISTEMA","ORDEN Y LIMPIEZA"],
+  ELEC_MOTOR_ALT:["DESENERGIZAR SISTEMA","CUMPLIR CON EL PROCEDIMIENTO LOTO","MEDIR Y REGISTRAR RESISTENCIA DEL MOTOR","REALIZAR PRUEBA DE AISLAMIENTO DEL MOTOR","MEDIR Y REGISTRAR VOLTAJE ENTRE FASES DEL MOTOR","MEDIR Y REGISTRAR VOLTAJE ENTRE FASES Y TIERRA DEL MOTOR","AJUSTAR CONEXIONES ELÉCTRICAS EN ARRANCADOR","REALIZAR MANTENIMIENTO A LOS CONTACTOS DEL CONTACTOR","AJUSTAR CONEXIONES ELÉCTRICAS EN CAJA DE CONEXIONES DEL MOTOR","ENERGIZAR SISTEMA","VERIFICAR SENTIDO DE GIRO CORRECTO DEL MOTOR","MEDIR CONSUMO ELÉCTRICO","REVISIÓN Y REEMPLAZO DE BOMBILLOS INDICADORES DE PARADA MARCHA Y FALLA. (SI LO AMERITA)","NORMALIZAR SISTEMA","ORDEN Y LIMPIEZA"],
+  MEC_BOMBA:["Despresurizacion del Sistema","Limpieza de Filtros","Cambio de Aceite","Verificacion de Impeler","Verificacion de line de succion y de descarga para posible taponamiento","Verificacion de Alineacion","Verificacion de Juntas","Inspeccion de Sello Mecanico","Inspeccion de Anclaje","Verificacion de Accesorios"],
+  MEC_VENT:["ENGRASE DE CHUMACERAS DE VENTILADOR","ENGRASE DEL MOTOR DEL VENTILADOR","VERIFICACIÓN DE LAS POLEAS DE MOTOR Y VENTILADOR","VERIFICACIÓN Y AJUSTE DE TENSIÓN DE LAS CORREAS"],
+  MEC_INY:["Despresurizacion","Desernegizado","Chequeo y Verificacion del Sistema de Sellos del Extractor de Fluido","Ajuste de prensa estopa por posibles fugas de liquidos que maneja el equipo","Chequeo de Aceite","Completar o reempazar el Aceite o Lubricante","Engrasar el Sistema de Sellos","Chequeo y Verificacion de las Valvulas de Succion y de Descarga","Chequeo y verificacion de los cabezales de succion y de descarga, chequeo de los sistemas de amortiguacion o Damper y cambio de filtro","Revision y Chequeo de anclajes de Bomba y Motor","Chequeo de tension y condicion de las correas o bandas"]
+};
+
+/* ============================================================
+   SIGMA · ELECTRICIDAD (Separación) — fuente
+   ============================================================ */
+const SEP_ELEC_SRC = {
+  "ST-01-FE":[],"ST-02-SB":[],
+  "ST-03-BCAP":[
+    ["BOMBA CARGA DE AGUA PROD PM-11224103 ( 5 HP)","ELEC_MOTOR"],["BOMBA CARGA DE AGUA PROD PM-11224104 ( 5 HP)","ELEC_MOTOR"],
+    ["BOMBA CARGA DE AGUA PROD PM-11224203 ( 5 HP)","ELEC_MOTOR"],["BOMBA CARGA DE AGUA PROD PM-11224204 ( 5 HP)","ELEC_MOTOR"],
+    ["BOMBA CARGA DE CRUDO PM-11224101","ELEC_MOTOR"],["BOMBA CARGA DE CRUDO PM-11224102","ELEC_MOTOR"],
+    ["BOMBA CARGA DE CRUDO PM-11224201","ELEC_MOTOR"],["BOMBA CARGA DE CRUDO PM-11224202","ELEC_MOTOR"]
+  ],
+  "ST-04-BCHP":[["BOMBA PTA PM-11225101 ( 125 HP)","ELEC_MOTOR"],["BOMBA PTA PM-11225102 ( 125 HP)","ELEC_MOTOR"]],
+  "ST-05-BAI":[["BOMBA DE INYECCION AGUA A POZOS P-11226102","ELEC_MOTOR"],["BOMBA DE INYECCION AGUA A POZOS P-11226103","ELEC_MOTOR"]],
+  "ST-06-GCMP":[],"ST-07-SAP":[],"ST-08-TR1":[],"ST-09-TR2":[],
+  "ST-10-SIC":[["BOMBA DE CONDENSADO P-11230102","ELEC_MOTOR"],["BOMBA DE CONDENSADO P-11230101","ELEC_MOTOR"]],
+  "ST-11-TI1":[],"ST-12-TI2":[],"ST-13-TAI1":[],"ST-14-TAI2":[],"ST-15-TAC1":[],"ST-16-TAC2":[],
+  "ST-17-TCR":[
+    ["BOMBA DE CRUDO RECUPERADO PM-11226104","ELEC_MOTOR"],["BOMBA DE CRUDO RECUPERADO PM-11226105","ELEC_MOTOR"],
+    ["BOMBA DE CRUDO RECUPERADO PM-11226106","ELEC_MOTOR"],["BOMBA IGF P-11226109","ELEC_MOTOR"],
+    ["BOMBA IGF P-11226110","ELEC_MOTOR"],["BOMBA DE CRUDO RECUPERADO SISTEMA EFLUENTES","ELEC_MOTOR"]
+  ],
+  "ST-18-K":[
+    ["BOMBA KOD DESVIO PLANTA PRODUCCIÓN P-1123A102 (Flowserve)","ELEC_MOTOR"],["BOMBA KOD DESVIO PLANTA PRODUCCIÓN P-1123A103 (Flowserve)","ELEC_MOTOR"],
+    ["BOMBA KOD DESVIO PLANTA PRODUCCIÓN P-1123A104 (Flowserve)","ELEC_MOTOR"],["BOMBA KOD DESVIO PLANTA PRODUCCIÓN P-1123A105 (Flowserve)","ELEC_MOTOR"],
+    ["BOMBA KOD DESVIO PLANTA PRODUCCIÓN P-1123A106 (Flowserve)","ELEC_MOTOR"],["BOMBA KOD ESTACIÓN CENTRALIZADA P-1123B101 (Flowserve)","ELEC_MOTOR"],
+    ["BOMBA KOD ESTACIÓN CENTRALIZADA P-1123B102 (Flowserve)","ELEC_MOTOR"],["BOMBA KOD ESTACIÓN CENTRALIZADA P-1123B103 (Flowserve)","ELEC_MOTOR"],
+    ["BOMBA KOD ESTACIÓN COMPRESIÓN P-1123H101 (Centrifuga)","ELEC_MOTOR"],["BOMBA KOD ESTACIÓN COMPRESIÓN P-1123H102 (Centrifuga)","ELEC_MOTOR"]
+  ],
+  "ST-19-SDDV":[]
+};
+
+/* ============================================================
+   SIGMA · INST/MEC — Compresión
+   ============================================================ */
+const SIGMA_COMP_EXTRA={
+  "TA-1":{INS:[
+    ["FV-071520 VALVULA CONTROL DE FLUJO 4¨ ENTRADA DEPURADOR DE SUCCION","VALV"],
+    ["XY-071520 VALVULA SOLENOIDE DE FV-071520","SOL"],
+    ["ZSC-071520 SWITCHE POSICIÓN CERRADO XV-071520","SW"],["ZSO-071520 SWITCHE POSICIÓN ABIERTO XV-071520","SW"],
+    ["TIT-111510 TRANSMISOR TEMP ENTRADA AL DEPURADOR DE SUCC","INSTR_STD2"],
+    ["FIT-071520 TRANSMISOR FLUJO SALIDA DEPURADOR DE SUCC CON FE-071520","INSTR_STD2"],
+    ["TIT-071530 TRANSMISOR TEMP SALIDA AL DEPURADOR DE SUCC","INSTR_STD2"],
+    ["PDIT-071520 TRANSMISOR DIF PRESIÓN SALIDA DEPURADOR DE SUCC 3/4¨","INSTR_STD2"],
+    ["PIT-071550 TRANSMISOR PRESIÓN ENTRADA AL COMPRESOR 3/4¨","INSTR_STD2"],
+    ["PIT-071530 TRANSMISOR PRESIÓN SALIDA DEL COMPRESOR","INSTR_STD2"],
+    ["PIT-071540 TRANSMISOR PRESIÓN SALIDA DEL COMPRESOR 3/4¨","INSTR_STD2"],
+    ["TIT-191510 TRANSMISOR TEMP SALIDA DEL COMPRESOR 3/4¨","INSTR_STD2"],
+    ["FV-071510 VALVULA CONTROL FLUJO 3¨ ENTRADA DEPURADOR SUCC RECIRCULACION","VALV"],
+    ["XY-071510 VALVULA SOLENOIDE DE FV-071510","SOL"],
+    ["ZSC-071510 SWITCHE POSICIÓN CERRADO XV-071510","SW"],["ZSO-071510 SWITCHE POSICIÓN ABIERTO XV-071510","SW"],
+    ["TIT-191530 TRANSMISOR TEMP SALIDA DE ENFRIADORES DE GAS","INSTR_STD2"],
+    ["PIT-191520 TRANSMISOR PRESIÓN SALIDA DE ENFRIADORES 3/4¨","INSTR_STD2"],
+    ["TIT-191520 TRANSMISOR TEMP SALIDA DE ENFRIADORES A DEP DESCARGA","INSTR_STD2"],
+    ["LCV-111520 VALVULA DESPACHADORA DE LIQUIDOS DE DEP. SUCC","VALV"],
+    ["XY-111520 VALVULA SOLENOIDE DE LCV-111520","SOL"],
+    ["LS-071520 SWITCH BAJO NIVEL 1\" V-113215A (GAS COMBUSTIBLE)","SW_LVL"],
+    ["LG-07151A VISOR NIVEL SEPARADOR V-113215A","VISOR"],
+    ["PDIT-071570 TRANSMISOR DIF PRESIÓN 3/4\" HH20 H15","INSTR_STD2"],
+    ["LS-071540 SWITCH BAJO NIVEL 1\" V-113215B","SW_LVL"],
+    ["LG-07153A VISOR NIVEL SEPARADOR V-113215B","VISOR"],
+    ["PDIT-071580 TRANSMISOR DIF PRESIÓN 3/4\" HH20 H15","INSTR_STD2"],
+    ["TIT-071570 TRANSMISOR TEMP SALIDA DEL CALENTADOR","INSTR_STD2"],
+    ["LG-203F VISOR NIVEL FILTRO SEPARADOR VERTICAL (GAS DE SELLO)","VISOR"],
+    ["PDIT-202F TRANSMISOR DIF PRESIÓN 1\" HH20 H15 (GAS SELLO)","INSTR_STD2"],
+    ["LG-205F (GAS DE SELLO)","VISOR"],
+    ["LSHH-204F SWITCHE BAJO NIVEL FILTRO SEPARADOR VERTICAL","SW_LVL"],
+    ["LG-223F (GAS DE SELLO)","VISOR"],
+    ["PDIT-222F TRANSMISOR DIF PRESIÓN 1\" HH20 H15 (GAS SELLO)","INSTR_STD2"],
+    ["LG-225F VISOR NIVEL FILTRO SEPARADOR VERTICAL","VISOR"],
+    ["LSHH-224F (GAS DE SELLO)","SW_LVL"],
+    ["BZT 2101","BZT"],["BZT 2103","BZT"],["BZT 2104","BZT"],["BZT 2105","BZT"],["BZT 2106","BZT"],["BZT 2107","BZT"],["BZT 2108","BZT"],["BZT 2109","BZT"],["BZT 2110","BZT"],["BZT 2111","BZT"],["BZT 2112","BZT"],
+    ["XZT 2101","BZT"],["XZT 2102","BZT"],["XZT 2103","BZT"],["XZT 2104","BZT"],
+    ["SWITCH VIBRACION (VSHH) V1 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V2 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V3 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V4 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V5 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V6 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V7 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V8 DE GAS","VIB"],
+    ["SWITCH VIBRACION (VSHH) V1 DE ACEITE","VIB"],
+    ["SOLENOIDE VALVULA SUCCIÓN 16\"","SOL"],["VÁLVULA SUCCIÓN 16\"","VALV_SW"],
+    ["SOLENOIDE VALVULA CARGA 2\"","SOL"],["VÁLVULA CARGA 2\"","VALV_SW"],
+    ["SOLENOIDE VALVULA DESCARGA 12\"","SOL"],["VÁLVULA DESCARGA 12\"","VALV_SW"],
+    ["SOLENOIDE VALVULA BLOQUEO GAS COMBUSTIBLE 2\"","SOL"],["VÁLVULA BLOQUEO GAS COMBUSTIBLE 2\"","VALV_SW"]
+  ],MEC:[
+    ["MANTENIMIENTO PREVENTIVO V-1 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-2 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-3 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-4 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-5 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-6 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-7 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-8 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-1 DE ACEITE","MEC_VENT"]
+  ]},
+  "TB-2":{INS:[
+    ["FIT-070520 TRANSMISOR FLUJO 3/4\" EN L26\" CON FE DE 16\"","INSTR_STD"],
+    ["TIT-070530 TRANSMISOR TEMP 2\" EN L26\"","INSTR_STD"],
+    ["PDIT-070530 TRANSMISOR DIF PRESIÓN 3/4\" HH115 H100","INSTR_STD"],
+    ["PIT-070550 TRANSMISOR PRESIÓN 3/4\" HH120 H100 LL35 L50","INSTR_STD"],
+    ["PIT-070560 TRANSMISOR PRESIÓN ENTRADA AL COMPRESOR L26\"","INSTR_STD"],
+    ["TE-070550 ELEMENTO TEMP HACIA UC-070520 SALIDA DEL COMPRESOR","SOL"],
+    ["PIT-070520 TRANSMISOR PRESIÓN SALIDA DEL COMPRESOR","INSTR_STD"],
+    ["PIT-070540 TRANSMISOR PRESIÓN SALIDA DEL COMPRESOR HH175 H165 LL60 L70","INSTR_STD"],
+    ["TIT-190510 TRANSMISOR TEMP HH242 H235 2\" L16\"","INSTR_STD"],
+    ["PIT-190520 TRANSMISOR PRESIÓN SALIDA DE ENFRIADOR L16\"","INSTR_STD"],
+    ["TIT-190520 TRANSMISOR TEMP HH138 2\" L16\"","INSTR_STD"],
+    ["FV-070520 VALVULA CONTROL FLUJO RECIRCULACION 8\" EN L10\" A 12\"","VALV"],
+    ["XY-070520 VALVULA SOLENOIDE DE FV-070520","SOL"],
+    ["FY-070520 IP DE VALVULA FV-070520","IP_IND"],
+    ["BDV-070510 VALVULA ALIVIO 2\" HACIA CABEZAL DE VENTEO","SOL"],
+    ["LIT-110510 TRANSMISOR NIVEL 2\" HH46\" LL22\"","INSTR_STD"],
+    ["LG-11052A VISOR NIVEL SEPARADOR V-11214301","VISOR"],
+    ["LIT-110520 TRANSMISOR NIVEL 2\" HH46\" H40\" LL22\" L28\"","INSTR_STD"],
+    ["LCV-110520 VALVULA CONTROLADORA NIVEL 2\" V-11214301","VALV"],
+    ["XY-110520 VALVULA SOLENOIDE DE LCV-110520","SOL"],
+    ["TIT-110610 TRANSMISOR TEMP 2\" EN L16\" CON TE-110610","INSTR_STD"],
+    ["LIT-110610 TRANSMISOR NIVEL 2\" HH46\" LL22\"","INSTR_STD"],
+    ["LG-110620 VISOR NIVEL SEPARADOR V-11214302 (DEPURADOR SUCCIÓN)","VISOR"],
+    ["LIT-110620 TRANSMISOR NIVEL 2\" HH46\" H40\" LL22\" L28\"","INSTR_STD"],
+    ["LCV-110620 VALVULA CONTROLADORA NIVEL 2\" DEPURADOR SUCCIÓN","VALV"],
+    ["XY-110620 VALVULA SOLENOIDE DE LCV-110620","SOL"],
+    ["LY-110620 POSICION CON IP DE LCV-110620","IP_POS"],
+    ["FIT-070610 TRANSMISOR FLUJO 3/4\" EN L16\" CON FE-070610","INSTR_STD"],
+    ["TIT-070620 TRANSMISOR TEMP 2\" EN L16\" CON TE-070620","INSTR_STD"],
+    ["PDIT-070660 TRANSMISOR DIF PRESIÓN 3/4\" HH115 H110","INSTR_STD"],
+    ["PIT-070640 TRANSMISOR PRESIÓN 3/4\" HH220 H180 LL125 L130","INSTR_STD"],
+    ["PIT-070630 TRANSMISOR PRESIÓN 3/4\" HH535 H515 LL400 L415","INSTR_STD"],
+    ["TIT-190610 TRANSMISOR TEMP CON TE-190610 ENTRADA AL COMPRESOR","INSTR_STD"],
+    ["PIT-070650 TRANSMISOR PRESIÓN HACIA UC-070610","INSTR_STD"],
+    ["TE-070640 ELEMENTO TEMP HACIA UC-070640 SALIDA DEL COMPRESOR","SOL"],
+    ["PIT-070620 TRANSMISOR PRESIÓN SALIDA DEL COMPRESOR HACIA UC-070610","INSTR_STD"],
+    ["FV-0701230 VALVULA CONTROL FLUJO RECIRCULACION EN CALIENTE 4\" EN L8\" A 10\"","VALV"],
+    ["XY-072320 VALVULA SOLENOIDE DE FV-070230","SOL"],
+    ["TY-190230 VALVULA IP CONTROLA ANGULO ASPAS ENFRIADORES","VALV"],
+    ["TIT-190230 TRANSMISOR TEMP TE-190230 2\" L16\"","INSTR_STD"],
+    ["PIT-190220 TRANSMISOR PRESIÓN SALIDA DEL COMPRESOR HH490","INSTR_STD"],
+    ["TIT-190220 TRANSMISOR TEMP TE-190220 HH138 LL105 2\" L16\"","INSTR_STD"],
+    ["FV-070210 VALVULA CONTROL FLUJO RECIRCULACION 6\" EN L8\" A 10\"","VALV"],
+    ["FY-070210 IP DE VALVULA FV-070210","IP_IND"],
+    ["XY-070210 VALVULA SOLENOIDE DE FV-070230","SOL"],
+    ["BDV-070220 VALVULA ALIVIO 2\" HACIA CABEZAL DE VENTEO FALLA ABIERTA","VALV"],
+    ["XY-070220 VALVULA SOLENOIDE DE BDV-070220","SOL"],
+    ["LIT-112010 TRANSMISOR NIVEL 2\" HH46\" LL22\"","INSTR_STD"],
+    ["LG-11202A VISOR NIVEL SEPARADOR V-1131113","VISOR"],
+    ["LIT-112020 TRANSMISOR NIVEL 2\" HH46\" H40\" LL22\" L28\"","INSTR_STD"],
+    ["LCV-112020 VALVULA CONTROLADORA NIVEL 2\" DEPURADOR SALIDA A RECIRCULA","VALV"],
+    ["XY-112020 VALVULA SOLENOIDE DE LCV-112020","SOL"],
+    ["TY-070210 POSICIONADOR IP VALVULA TV-070210","IP_POS"],
+    ["TIT-070250 TRANSMISOR TEMP TE-070250 2\" L3\" DESDE GAS COMBUSTIBLE","INSTR_STD"],
+    ["TIT-070210 TRANSMISOR TEMP TE-070210 L3\" HACIA GAS COMBUSTIBLE","INSTR_STD"],
+    ["LS-070520 SWITCH BAJO NIVEL 1\" V-113134A GAS COMBUSTIBLE","SW_LVL"],
+    ["LG-07051A VISOR NIVEL SEPARADOR V-113134A GAS COMBUSTIBLE","VISOR"],
+    ["PDIT-070570 TRANSMISOR DIF PRESIÓN 3/4\" HH20 H15","INSTR_STD"],
+    ["LS-070540 SWITCH BAJO NIVEL 1\" V-113134B GAS COMBUSTIBLE","SW_LVL"],
+    ["LG-07053A VISOR NIVEL SEPARADOR V-113134B GAS COMBUSTIBLE","VISOR"],
+    ["PDIT-070580 TRANSMISOR DIF PRESIÓN 3/4\" HH20 H15","INSTR_STD"],
+    ["LG-203A GAS DE SELLO","VISOR"],["PDIT-202A TRANSMISOR DIF PRESIÓN 1\" HH20 H15","INSTR_STD"],
+    ["LG-205A GAS DE SELLO","VISOR"],["LSHH-204A SWITCHE BAJO NIVEL FILTRO SEPARADOR VERTICAL","SW_LVL"],
+    ["LG-223A GAS DE SELLO","VISOR"],["PDIT-222A TRANSMISOR DIF PRESIÓN 1\" HH20 H15","INSTR_STD"],
+    ["LG-225A GAS DE SELLO","VISOR"],["LSHH-224A SWITCHE BAJO NIVEL FILTRO SEPARADOR VERTICAL","SW_LVL"],
+    ["BZT 1301","BZT"],["BZT 1302","BZT"],["BZT 1303","BZT"],["BZT 1304","BZT"],["BZT 1305","BZT"],["BZT 1306","BZT"],["BZT 1307","BZT"],["BZT 1308","BZT"],["BZT 1309","BZT"],
+    ["XZT 1301","BZT"],["XZT 1302","BZT"],["XZT 1303","BZT"],
+    ["SWITCH VIBRACION (VSHH) V1 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V2 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V3 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V4 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V5 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V6 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V7 DE GAS","VIB"],["SWITCH VIBRACION (VSHH) V8 DE GAS","VIB"],
+    ["SWITCH VIBRACION (VSHH) V1 DE ACEITE","VIB"],["SWITCH VIBRACION (VSHH) V2 DE ACEITE","VIB"],
+    ["SOLENOIDE VALVULA SUCCIÓN 26\"","SOL"],["VÁLVULA SUCCIÓN 26\"","VALV_SW"],
+    ["SOLENOIDE VALVULA CARGA 2\"","SOL"],["VÁLVULA CARGA 2\"","VALV_SW"],
+    ["SOLENOIDE VALVULA DESCARGA 12\"","SOL"],["VÁLVULA DESCARGA 12\"","VALV_SW"],
+    ["SOLENOIDE VALVULA BLOQUEO GAS COMBUSTIBLE 2\"","SOL"],["VÁLVULA BLOQUEO GAS COMBUSTIBLE 2\"","VALV_SW"]
+  ],MEC:[
+    ["MANTENIMIENTO PREVENTIVO V-1 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-2 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-3 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-4 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-5 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-6 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-7 DE GAS","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-8 DE GAS","MEC_VENT"],
+    ["MANTENIMIENTO PREVENTIVO V-1 DE ACEITE","MEC_VENT"],["MANTENIMIENTO PREVENTIVO V-2 DE ACEITE","MEC_VENT"]
+  ]}
+};
+SIGMA_COMP_EXTRA["TA-3"]=SIGMA_COMP_EXTRA["TA-1"];
+SIGMA_COMP_EXTRA["TB-3"]=SIGMA_COMP_EXTRA["TB-2"];
+SIGMA_COMP_EXTRA["TB-1"]={INS:[],MEC:[]};SIGMA_COMP_EXTRA["TB-4"]={INS:[],MEC:[]};SIGMA_COMP_EXTRA["TB-5"]={INS:[],MEC:[]};
+SIGMA_COMP_EXTRA["TA-2"]={INS:[],MEC:[]};SIGMA_COMP_EXTRA["TA-4"]={INS:[],MEC:[]};
+
+/* ============================================================
+   SIGMA · INST/MEC — Separación
+   ============================================================ */
+const SIGMA_SEP_SRC={
+  "ST-01-FE":{INS:[
+    ["TRANSMISOR PRESIÓN LLEGADA (ERED-2) PIT-561710","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (ERED-2) PZT-561710","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (EJED-3/SJED-1) PIT-561810","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (EJED-3/SJED-1) PY-561810","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (SJED-4/GED1) PY-561910","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (SJED-4/GED1) PZT-561910","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (SJED-1) PIT-562010","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (SJED-1) PZT-562010","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (SEJD-3) PIT-562110","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (SJED-3) PZT-562110","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (GED-1) PIT-562210","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (GED-1) PZT-562210","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (SJED-4) PIT-562310","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (SJED-4) PZT-562310","I"],
+    ["TRANSMISOR PRESIÓN LLEGADA (ERED-2) PIT-562410","I"],["TRANSMISOR PRESIÓN SIS ENTRADA (ERED-2) PZT-562410","I"],
+    ["TRAMPA ROBLE 450 PSI XV-561710 SWICHT POSICIÓN","W"],["SJ3 TRAMPA 60 XV-562110 SWICHT POSICIÓN","W"],
+    ["SJ4 TRAMPA 60 XV-562210 SWICHT POSICIÓN","W"],["SJ4 TRAMPA 60 XV-562310 SWICHT POSICIÓN","W"],
+    ["TRAMPA ROBLE 60 XV-562241 SWICHT POSICIÓN","W"],["SJ4 TRAMPA 450 XV-561910 SWICHT POSICIÓN","W"],
+    ["SJ4 TRAMPA 450 XV-561810 SWICHT POSICIÓN","W"],["SJ4 TRAMPA 450 XV-561910 SWICHT POSICIÓN","W"],
+    ["SJ4 TRAMPA 450 XV-561810 SWICHT POSICIÓN","W"],["SJ1 TRAMPA XV-562010 SWICHT POSICIÓN","W"],
+    ["BZT 561720","B"],["BZT 561740","B"],["BZT 562030","B"],["BZT 562020","B"],["BZT 562430","B"],
+    ["BZT 561710","B"],["BZT 562420","B"],["BZT 562010","B"],["BZT 562410","B"],["BZT 561910","B"],
+    ["BZT 562120","B"],["BZT 562130","B"],["BZT 562140","B"],["BZT 562110","B"],["BZT 562150","B"],
+    ["BZT 562210","B"],["BZT 562220","B"],["BZT 561920","B"],["BZT 562230","B"],["BZT 561810","B"],["BZT 562240","B"],
+    ["XZT 561720","B"],["XZT 562420","B"],["XZT 561710","B"],["XZT 562410","B"],
+    ["TRANSMISOR PRESIÓN (INALÁMBRICO) PIT","I3"],["TRANSMISOR PRESIÓN (INALÁMBRICO) PIT","I3"],
+    ["TRANSMISOR PRESIÓN (INALÁMBRICO) PIT","I3"],["TRANSMISOR PRESIÓN (INALÁMBRICO) PIT","I3"],
+    ["TRANSMISOR PRESIÓN (INALÁMBRICO) PIT","I3"],["TRANSMISOR PRESIÓN (INALÁMBRICO) PIT","I3"],
+    ["VÁLVULA CONTROL PRESIÓN PV-56200A SJED-1 60 PSI","VALV_IP"],["VÁLVULA CONTROL PRESIÓN PV-56210A SJED-3 60 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-56220A GED-1 60 PSI","VALV_IP"],["VÁLVULA CONTROL PRESIÓN PV-56230A SJED-4 1 60 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-56240A ERED-2 60 PSI","VALV_IP"],["VÁLVULA CONTROL PRESIÓN PV-56200A ERED-2 450 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-56170A SJED-1/SJED-3 450 PSI","VALV_IP"],["VÁLVULA CONTROL PRESIÓN PV-56170A SJED-1/SJED-3 450 PSI","VALV_IP"]
+  ],MEC:[]},
+  "ST-02-SB":{INS:[
+    ["TRANSMISOR NIVEL DIF PRESIÓN ALARMA BAJO NIVEL LIT-250110","I"],
+    ["TRANSMISOR NIVEL DIF PRESIÓN ALARMA MUY ALTO NIVEL LZT-250110","I"],
+    ["TRANSMISOR DIF PRESIÓN ALARMA MUY ALTA PRESIÓN PDZT-250110","I"],
+    ["VISOR NIVEL V-11223101 SEPARADOR 450 LG-25010A","G"],
+    ["TRANSMISOR PRESIÓN 450 PSI PZT-250110","I"],
+    ["TRANSMISOR PRESIÓN ASOCIADO FLUJO ULTRASÓNICO PIT-250110","I"],
+    ["TRANSMISOR NIVEL DIF PRESIÓN ALARMA BAJO NIVEL LIT-250210","I"],
+    ["VISOR NIVEL V-11223102 SEPARADOR 60 LG-25020A","G"],
+    ["TRANSMISOR PRESIÓN 60 PSI PZT-250210","I"],
+    ["TRANSMISOR FLUJO ULTRASÓNICO FIT-250210","I"],
+    ["SENSOR FLUJO ULTRASÓNICO FE-250210","I2"],
+    ["TRANSMISOR TEMP ASOCIADO FLUJO ULTRASÓNICO TIT-250210","I"],
+    ["TRANSMISOR PRESIÓN ASOCIADO FLUJO ULTRASÓNICO PIT-250210","I"],
+    ["TRANSMISOR NIVEL DIF PRESIÓN MUY ALTO NIVEL LZT-250310","I"],
+    ["VISOR NIVEL V-11223201 SEPARADOR 450 LG-25030A","G"],
+    ["TRANSMISOR PRESIÓN 450 PSI PZT-250310","I"],
+    ["TRANSMISOR FLUJO ULTRASÓNICO FIT-250310","I"],
+    ["SENSOR FLUJO ULTRASÓNICO FE-250310","I2"],
+    ["TRANSMISOR TEMP ASOCIADO FLUJO ULTRASÓNICO TIT-250310","I"],
+    ["TRANSMISOR PRESIÓN ASOCIADO FLUJO ULTRASÓNICO PIT-250310","I"],
+    ["TRANSMISOR NIVEL DIF PRESIÓN ALARMA BAJO NIVEL LIT-250410","I"],
+    ["TRANSMISOR NIVEL DIF PRESIÓN MUY ALTO NIVEL LZT-250410","I"],
+    ["TRANSMISOR DIF PRESIÓN APERTURA XV-2504210 PDZT-250410","I"],
+    ["VISOR NIVEL V-11223202 LG-25040A","G"],
+    ["TRANSMISOR PRESIÓN 60 PSI PZT-250410","I"],
+    ["TRANSMISOR FLUJO ULTRASÓNICO FIT-250410","I"],
+    ["SENSOR FLUJO ULTRASÓNICO FE-250410 TIT-250410","I2"],
+    ["TRANSMISOR TEMP ASOCIADO FLUJO ULTRASÓNICO TIT-250410","I"],
+    ["TRANSMISOR PRESIÓN ASOCIADO FLUJO ULTRASÓNICO PIT-250410","I"],
+    ["BZT-250110","B"],["BZT-250120","B"],["BZT-250210","B"],["BZT-250220","B"],["BZT-250410","B"],["BZT-250420","B"],
+    ["XZT-250110","B"],["XZT-250310","B"],["XZT-250210","B"],["XZT-250410","B"],
+    ["VÁLVULA XV-250110 SWITCHES POSICIÓN Y SOLENOIDE 450 PSI TREN 01 ENTRADA","VS"],
+    ["VÁLVULA CONTROL NIVEL LV-250110 450 PSI TREN 01","VALV_IP"],
+    ["VÁLVULA XV-250110 SWITCHES POSICIÓN Y SOLENOIDE 450 PSI TREN 01 SALIDA LIQ","VS"],
+    ["VÁLVULA XV-250210 SWITCHES POSICIÓN Y SOLENOIDE 60 PSI TREN 01 ENTRADA","VS"],
+    ["VÁLVULA CONTROL NIVEL LV-250210 60 PSI TREN 01","VALV_IP"],
+    ["VÁLVULA XV-250210 SWITCHES POSICIÓN Y SOLENOIDE 60 PSI TREN 01 SALIDA LIQ","VS"],
+    ["VÁLVULA XV-250310 SWITCHES POSICIÓN Y SOLENOIDE 450 PSI TREN 02 ENTRADA","VS"],
+    ["VÁLVULA CONTROL NIVEL LV-250310 450 PSI TREN 2","VALV_IP"],
+    ["VÁLVULA XV-250310 SWITCHES POSICIÓN Y SOLENOIDE 450 PSI TREN 02 SALIDA LIQ","VS"],
+    ["VÁLVULA XV-250410 SWITCHES POSICIÓN Y SOLENOIDE 60 PSI TREN 02 ENTRADA","VS"],
+    ["VÁLVULA CONTROL NIVEL LV-250410 60 PSI TREN 02","VALV_IP"],
+    ["VÁLVULA XV-250410 SWITCHES POSICIÓN Y SOLENOIDE 60 PSI TREN 02 SALIDA LIQ","VS"]
+  ],MEC:[]},
+  "ST-03-BCAP":{INS:[
+    ["TRANSMISOR FLUJO FIT-010310","I"],["TRANSMISOR PRESIÓN PIT-010320","I"],["TRANSMISOR PRESIÓN SIS PZT-010310","I"],
+    ["TRANSMISOR PRESIÓN PIT-010310","I"],["TRANSMISOR DIF PRESIÓN PDIT-010310","I"],["TRANSMISOR PRESIÓN SIS PZT-010320","I"],
+    ["TRANSMISOR FLUJO FIT-010410","I"],["TRANSMISOR PRESIÓN PIT-010420","I"],["TRANSMISOR PRESIÓN SIS PZT-010410","I"],
+    ["TRANSMISOR PRESIÓN PIT-010410","I"],["TRANSMISOR DIF PRESIÓN PDIT-010410","I"],["TRANSMISOR FLUJO FIT-010910","I"],
+    ["TRANSMISOR PRESIÓN SIS PZT-010910","I"],["TRANSMISOR PRESIÓN PIT-010910","I"],["TRANSMISOR DIF PRESIÓN PDIT-010910","I"],
+    ["TRANSMISOR FLUJO FIT-011010","I"],["TRANSMISOR PRESIÓN PIT-011020","I"],["TRANSMISOR FLUJO FIT-011010","I"],
+    ["TRANSMISOR PRESIÓN SIS PZT-011010","I"],["TRANSMISOR DIF PRESIÓN PDIT-011010","I"],
+    ["TRANSMISOR FLUJO FIT-010910","I"],["TRANSMISOR PRESIÓN PIT-010920","I"],["TRANSMISOR PRESIÓN SIS PZT-010910","I"],
+    ["TRANSMISOR PRESIÓN PIT-010910","I"],["TRANSMISOR DIF PRESIÓN PDIT-010910","I"],
+    ["TRANSMISOR FLUJO FIT-011010","I"],["TRANSMISOR PRESIÓN PIT-011020","I"],["TRANSMISOR PRESIÓN SIS PZT-011010","I"],
+    ["TRANSMISOR PRESIÓN PIT-011010","I"],["TRANSMISOR DIF PRESIÓN PDIT-011010","I"]
+  ],MEC:[
+    ["BOMBA CARGA AGUA PROD PM-11224103 (5 HP)","MB"],["BOMBA CARGA AGUA PROD PM-11224104 (5 HP)","MB"],
+    ["BOMBA CARGA AGUA PROD PM-11224203 (5 HP)","MB"],["BOMBA CARGA AGUA PROD PM-11224204 (5 HP)","MB"],
+    ["BOMBA CARGA CRUDO PM-11224101","MB"],["BOMBA CARGA CRUDO PM-11224102","MB"],
+    ["BOMBA CARGA CRUDO PM-11224201","MB"],["BOMBA CARGA CRUDO PM-11224202","MB"]
+  ]},
+  "ST-04-BCHP":{INS:[
+    ["TRANSMISOR PRESIÓN PROTECCIÓN SUCCIÓN P-11225101 PZT-010110","I"],
+    ["TRANSMISOR DIF PRESIÓN FILTRO SUCCIÓN P-11225101 PDIT-010110","I"],
+    ["TRANSMISOR PRESIÓN SUCCIÓN P-11225101 PIT-010110","I"],
+    ["TRANSMISOR DESCARGA PIT-010120","I"],["TRANSMISOR FLUJO DESCARGA FIT-010110","I"],
+    ["TRANSMISOR PRESIÓN PROTECCIÓN DESCARGA P-11225101 PZT-010120","I"],
+    ["TRANSMISOR PRESIÓN PROTECCIÓN SUCCIÓN P-11225102 PZT-010210","I"],
+    ["TRANSMISOR DIF PRESIÓN FILTRO SUCCIÓN P-11225102 PDIT-010210","I"],
+    ["TRANSMISOR PRESIÓN SUCCIÓN P-11225102 PIT-010210","I"],
+    ["TRANSMISOR PRESIÓN DESCARGA PIT-010220","I"],["TRANSMISOR FLUJO DESCARGA FIT-010210","I"],
+    ["TRANSMISOR PRESIÓN PROTECCIÓN DESCARGA P-11225102 PZT-010220","I"]
+  ],MEC:[["BOMBA PTA PM-11225101 (125 HP)","MB"],["BOMBA PTA PM-11225102 (125 HP)","MB"]]},
+  "ST-05-BAI":{INS:[
+    ["VÁLVULA ENTRADA XV-300710 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA XV-300720 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VISOR NIVEL T-11226103 LG-300710","G"],["VISOR NIVEL T-11226104 LG-300810","G"],
+    ["TRANSMISOR NIVEL T-11226103 LIT-300710","I"],["TRANSMISOR PRESIÓN T-11226103 PZT-300710","I"],
+    ["TRANSMISOR NIVEL SIS T-11226103 LZT-300710","I"],
+    ["BZT-300710","B"],["BZT-300720","B"],["BZT-300730","B"],["XZT-300710","B"]
+  ],MEC:[["BOMBA INYECCION AGUA A POZOS P-11226102","MI"],["BOMBA INYECCION AGUA A POZOS P-11226103","MI"]]},
+  "ST-06-GCMP":{INS:[
+    ["VISOR NIVEL DEPURADOR GAS COMBUSTIBLE LG-25090A","G"],
+    ["VISOR NIVEL FILTRO FI-11234101 LG-14030A","G"],["VISOR NIVEL FILTRO FI-11234101 LG-14030B","G"],
+    ["VISOR NIVEL FILTRO FI-11234102 LG-14040A","G"],["VISOR NIVEL FILTRO FI-11234102 LG-14040B","G"],
+    ["TRANSMISOR PRESIÓN ENTRADA DEPURADOR GC PZT-250960","I"],
+    ["TRANSMISOR PRESIÓN ENTRADA DEPURADOR GC PIT-250950","I"],
+    ["TRANSMISOR NIVEL HHLL DEPURADOR GC LZT-250910","I"],
+    ["TRANSMISOR NIVEL HL DEPURADOR GC LZT-250911","I"],
+    ["TRANSMISOR NIVEL FF DEPURADOR GC LIT-250910","I"],
+    ["TRANSMISOR PRESIÓN SALIDA GC PZT-250910","I"],
+    ["TRANSMISOR DIF PRESIÓN FILTRO FI-11234101 PDIT-140310","I"],
+    ["TRANSMISOR FLUJO SALIDA FILTROS FIT-25091A","I"],
+    ["TRANSMISOR TEMP FF SALIDA FILTROS TIT-25091C","I"],
+    ["TRANSMISOR PRESIÓN FF SALIDA FILTROS PIT-25091B","I"],
+    ["TRANSMISOR PRESIÓN H SALIDA FILTROS PZT-250950","I"],
+    ["BZT- 250410","B"],["XZT- 250410","B"]
+  ],MEC:[]},
+  "ST-07-SAP":{INS:[
+    ["TRANSMISOR FLUJO FIT-010520","I"],["TRANSMISOR PRESIÓN PIT-010520","I"],["TRANSMISOR PRESIÓN PIT-010510","I"],
+    ["TRANSMISOR PRESIÓN SIS PZT-010510","I"],["TRANSMISOR DIF PRESIÓN PDIT-010510","I"],
+    ["TRANSMISOR FLUJO FIT-010620","I"],["TRANSMISOR PRESIÓN PIT-010610","I"],["TRANSMISOR PRESIÓN SIS PZT-010610","I"],["TRANSMISOR DIF PRESIÓN PDIT-010610","I"],
+    ["TRANSMISOR FLUJO FIT-010720","I"],["TRANSMISOR PRESIÓN PIT-010720","I"],["TRANSMISOR PRESIÓN PIT-010710","I"],["TRANSMISOR DIF PRESIÓN PIT-010710","I"],
+    ["TRANSMISOR FLUJO FIT-010820","I"],["TRANSMISOR PRESIÓN PIT-0107820","I"],["TRANSMISOR PRESIÓN PIT-010810","I"],["TRANSMISOR PRESIÓN SIS PZT-010810","I"],["TRANSMISOR DIF PRESIÓN PDIT-010810","I"],["TRANSMISOR PRESIÓN SIS PZT-010720","I"],
+    ["BZT-011110","B"],["BZT-011120","B"],["BZT-140110","B"],["BZT-140120","B"],["BZT-760110","B"],["BZT-760120","B"],["XZT-760110","B"]
+  ],MEC:[]},
+  "ST-08-TR1":{INS:[
+    ["VÁLVULA ENTRADA XV-640110 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA CRUDO XV-640120 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA AGUA XV-640130 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VISOR NIVEL LG-640110","G"],
+    ["TRANSMISOR NIVEL LZT-640110","I"],["TRANSMISOR NIVEL LZT-640110","I"],
+    ["TRANSMISOR PRESIÓN PZT-640120","I"],["TRANSMISOR NIVEL INTERFACE H20 LZT-640120","I"],["TRANSMISOR NIVEL RADAR INTERFAC H20 LIT-640110","I"],
+    ["TRANSMISOR PRESIÓN PZT-010530","I"],
+    ["BZT-640110","B"],["BZT-640120","B"],["BZT-640130","B"],["BZT-010310","B"],["BZT-010320","B"],["XZT-640120","B"],["XZT-010310","B"]
+  ],MEC:[]},
+  "ST-09-TR2":{INS:[
+    ["VISOR NIVEL LG-640210","G"],
+    ["VÁLVULA ENTRADA XV-640210 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA CRUDO XV-640220 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA AGUA XV-640230 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["TRANSMISOR NIVEL LZT-640210","I"],["TRANSMISOR PRESIÓN PZT-640220","I"],["TRANSMISOR NIVEL INTERFACE H20 LZT-640220","I"],
+    ["TRANSMISOR NIVEL RADAR INTERFAC H20 LIT-640210","I"],["TRANSMISOR PRESIÓN PZT-010730","I"],
+    ["BZT-640210","B"],["BZT-640220","B"],["BZT-640230","B"],["BZT-010810","B"],["BZT-010910","B"],["BZT-011010","B"],["BZT-010620","B"],
+    ["XZT-011010","B"],["XZT-010510","B"],["XZT-640210","B"],["XZT-640220","B"]
+  ],MEC:[]},
+  "ST-10-SIC":{INS:[
+    ["TRANSMISOR PRESIÓN SUCCIÓN BOMBA PIT-1","I"],["TRANSMISOR PRESIÓN SUCCIÓN BOMBA PIT-2","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PDIT-1","I"],["TRANSMISOR DIF PRESIÓN FF PDIT-2","I"],
+    ["TRANSMISOR DIF PRESIÓN FLUJO PDIT-1","I"],["TRANSMISOR DIF PRESIÓN FLUJO PDIT-2","I"],
+    ["TRANSMISOR PRESIÓN BOMBA PZT-1","I"],["TRANSMISOR PRESIÓN BOMBA PZT-2","I"],
+    ["TRANSMISOR PRESIÓN DESCARGA BOMBA PIT-1","I"],["TRANSMISOR PRESIÓN DESCARGA BOMBA PIT-2","I"],
+    ["BZI-012810","B"],["BZI-012910","B"],["BZI-011510","B"],["BZI-011520","B"],["XZI-012910","B"],["XZI-251510","B"],
+    ["VISOR NIVEL V-11230101 LG-251510 TAMBOR CONDENSADO","G"],
+    ["TRANSMISOR NIVEL LIT-251510 TAMBOR CONDENSADO","I"],
+    ["TRANSMISOR NIVEL DIF PRESIÓN LZT-251510 TAMBOR CONDENSADO","I"],
+    ["TRANSMISOR PRESIÓN PIT-251510 TAMBOR CONDENSADO","I"]
+  ],MEC:[["BOMBA CONDENSADO P-11230102","MB"],["BOMBA CONDENSADO P-11230101","MB"]]},
+  "ST-11-TI1":{INS:[
+    ["VÁLVULA ENTRADA XV-300310 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA CONTROL NIVEL LV-300311","VALV_IP"],
+    ["VÁLVULA SALIDA AGUA PRODUCCIÓN XV-300320 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VISOR NIVEL LG-300310","G"],["TRANSMISOR PRESIÓN SIS PZT-300310","I"],["TRANSMISOR NIVEL LZT-300310","I"],
+    ["TRANSMISOR NIVEL INTERF H20 LIT-300311","I"],
+    ["BZT-300310","B"],["BZT-300320","B"],["BZT-300330","B"],["BZT-300340","B"],["XZT-300310","B"]
+  ],MEC:[]},
+  "ST-12-TI2":{INS:[
+    ["VÁLVULA ENTRADA XV-300410 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA CONTROL NIVEL LV-300411","VALV_IP"],
+    ["VÁLVULA SALIDA AGUA PRODUCCIÓN XV-300420 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["TRANSMISOR PRESIÓN SIS PZT-300410","I"],["TRANSMISOR NIVEL LZT-300410","I"],
+    ["TRANSMISOR NIVEL INTERF H20 LIT-300411","I"],["VISOR NIVEL LG-300410","G"],
+    ["BZT-300410","B"],["BZT-300420","B"],["BZT-300430","B"],["BZT-300440","B"],["XZT-300410","B"]
+  ],MEC:[]},
+  "ST-13-TAI1":{INS:[
+    ["VÁLVULA ENTRADA XV-300710 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA XV-300720 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VISOR NIVEL T-11226103 LG-300710","G"],["VISOR NIVEL T-11226104 LG-300810","G"],
+    ["TRANSMISOR NIVEL T-11226103 LIT-300710","I"],["TRANSMISOR PRESIÓN T-11226103 PZT-300710","I"],
+    ["TRANSMISOR NIVEL SIS T-11226103 LZT-300710","I"],
+    ["BZT-300710","B"],["BZT-300720","B"],["BZT-300730","B"],["XZT-300710","B"]
+  ],MEC:[]},
+  "ST-14-TAI2":{INS:[
+    ["VÁLVULA ENTRADA XV-300810 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA XV-300820 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["TRANSMISOR NIVEL T-11226104 LIT-300810","I"],["TRANSMISOR PRESIÓN T-11226104 PZT-300810","I"],
+    ["TRANSMISOR NIVEL SIS T-11226104 LZT-300810","I"],
+    ["BZT-300810","B"],["BZT-300820","B"],["BZT-300830","B"],["BZT-300840","B"],["XZT-300810","B"],
+    ["TRANSMISOR PRESIÓN ALARMA DESCARGA POZOS PZT-020120","I"],
+    ["TRANSMISOR PRESIÓN DESCARGA POZOS PIT-020130","I"],
+    ["TRANSMISOR FLUJO DESCARGA POZOS","I"]
+  ],MEC:[]},
+  "ST-15-TAC1":{INS:[
+    ["VÁLVULA ENTRADA XV-300110 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA ENTRADA YV-300110 POSICIÓN Y CONEXIONES FIELDBUS","VS"],
+    ["VÁLVULA SALIDA XV-300120 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA YV-300120 POSICIÓN Y CONEXIONES FIELDBUS","VS"],
+    ["VISOR NIVEL T-11225101 LG-300110","G"],
+    ["TRANSMISOR TEMP T-11225101 TIT-300110","I"],["TRANSMISOR PRESIÓN T-11225101 PZT-300110","I"],
+    ["TRANSMISOR NIVEL SIS T-11225101 LZT-300110","I"],
+    ["BZT-300110","B"],["BZT-300120","B"],["BZT-300130","B"],["BZT-300140","B"],["XZT-300110","B"],["XZT-010110","B"]
+  ],MEC:[]},
+  "ST-16-TAC2":{INS:[
+    ["VÁLVULA ENTRADA XV-300210 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA ENTRADA YV-300210 POSICIÓN Y CONEXIONES FIELDBUS","VS"],
+    ["VÁLVULA SALIDA XV-300220 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA YV-300220 POSICIÓN Y CONEXIONES FIELDBUS","VS"],
+    ["TRANSMISOR TEMP T-11225102 TIT-300210","I"],["TRANSMISOR PRESIÓN T-11225102 PZT-300210","I"],
+    ["TRANSMISOR NIVEL SIS T-11225102 LZT-300210","I"],["VISOR NIVEL T-11225102 LG-300210","G"],
+    ["BZT-300210","B"],["BZT-300220","B"],["BZT-300230","B"],["BZT-300240","B"],["XZT-300210","B"]
+  ],MEC:[]},
+  "ST-17-TCR":{INS:[
+    ["VÁLVULA ENTRADA XV-300910 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["VÁLVULA SALIDA XV-300920 SWITCHES POSICIÓN Y SOLENOIDE","VS"],
+    ["TRANSMISOR NIVEL T-11226105 LIT-300910","I"],["TRANSMISOR PRESIÓN T-11226105 PZT-300910","I"],
+    ["TRANSMISOR NIVEL SIS T-11226105 LZT-300910","I"],["TRANSMISOR PRESIÓN PZT-011810","I"],
+    ["TRANSMISOR TEMP T-11225105 TIT-300910","I"],["VISOR NIVEL T-11226105 LG-300910","G"],
+    ["BZT 300910","B"],["BZT 300920","B"],["BZT 300930","B"],["BZT 300940","B"],
+    ["BZT 011810","B"],["BZT 011820","B"],["BZT 011910","B"],["BZT 011920","B"],["BZT 012010","B"],["BZT 012020","B"],
+    ["XZT 300910","B"],["XZT 011910","B"],
+    ["TRANSMISOR NIVEL SISTEMA EFLUENTES","I"],["TRANSMISOR PRESIÓN SISTEMA EFLUENTES","I"],
+    ["TRANSMISOR NIVEL ASOCIADO SISTEMA EFLUENTES","I"],["TRANSMISOR PRESIÓN PZT-011810","I"],
+    ["TRANSMISOR TEMP SISTEMA EFLUENTES","I"],["VISOR NIVEL SISTEMA EFLUENTES","G"]
+  ],MEC:[
+    ["BOMBA CRUDO RECUPERADO PM-11226104","MB"],["BOMBA CRUDO RECUPERADO PM-11226105","MB"],
+    ["BOMBA CRUDO RECUPERADO PM-11226106","MB"],["BOMBA IGF P-11226109","MB"],["BOMBA IGF P-11226110","MB"],
+    ["BOMBA SISTEMA EFLUENTES","MB"]
+  ]},
+  "ST-18-K":{INS:[
+    ["TRANSMISOR NIVEL KOD DESVÍO V-1123A101 LIT-251310","I"],
+    ["TRANSMISOR NIVEL SIS LZT-251310","I"],
+    ["TRANSMISOR NIVEL KOD DESVÍO V-1123A102 LIT-251610","I"],
+    ["TRANSMISOR NIVEL SIS LZT-251610","I"],
+    ["TRANSMISOR FLUJO SALIDA GAS KOD FIT-790210","I"],
+    ["TRANSMISOR TEMP SALIDA GAS KOD TIT-790210","I"],
+    ["TRANSMISOR PRESIÓN SALIDA GAS KOD PIT-790210","I"],
+    ["TRANSMISOR PRESIÓN SIS PZT-251310","I"],
+    ["TRANSMISOR DIF PRESIÓN H PDIT-013210","I"],["TRANSMISOR PRESIÓN SIS PZT-013210","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PDIT-013210","I"],["TRANSMISOR PRESIÓN FF PIT-013210","I"],
+    ["TRANSMISOR PRESIÓN FF BOMBA P-1123A101 PIT-013220","I"],
+    ["TRANSMISOR DIF PRESIÓN H PDIT-013310","I"],["TRANSMISOR PRESIÓN SIS PZT-013310","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PIT-013310","I"],["TRANSMISOR PRESIÓN FF PIT-013310","I"],
+    ["TRANSMISOR PRESIÓN FF BOMBA P-1123A102 PIT-013320","I"],
+    ["TRANSMISOR DIF PRESIÓN H PDIT-013410 PZT-013410","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PDIT-013410","I"],["TRANSMISOR PRESIÓN FF PIT-013410","I"],
+    ["TRANSMISOR PRESIÓN FF BOMBA P-1123A103 PIT-013420","I"],
+    ["TRANSMISOR DIF PRESIÓN H PDIT-013510","I"],["TRANSMISOR PRESIÓN SIS PZT-013510","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PDIT-013510","I"],["TRANSMISOR PRESIÓN FF PIT-013510","I"],
+    ["TRANSMISOR PRESIÓN FF BOMBA P-1123A104 PIT-013520","I"],
+    ["TRANSMISOR DIF PRESIÓN H PDIT-013610","I"],["TRANSMISOR PRESIÓN SIS PZT-013610","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PDIT-013610","I"],["TRANSMISOR PRESIÓN FF PIT-013610","I"],
+    ["TRANSMISOR PRESIÓN FF BOMBA P-1123A105 PIT-013620","I"],
+    ["TRANSMISOR DIF PRESIÓN H PDIT-013710","I"],["TRANSMISOR PRESIÓN SIS PZT-013710","I"],
+    ["TRANSMISOR DIF PRESIÓN FF PDIT-013710","I"],["TRANSMISOR PRESIÓN FF PIT-013710","I"],
+    ["TRANSMISOR PRESIÓN FF BOMBA P-1123A106 PIT-013720","I"],
+    ["TRANSMISOR PRESIÓN SIS PZT-251320","I"],
+    ["VISOR NIVEL KOD V-1123A102 LG-251310","G"],["VISOR NIVEL KOD V-1123A102 LG-251610","G"],["VISOR NIVEL V-1123B101 LG-251410","G"],
+    ["BZT-013210","B"],["BZT-013810","B"],["BZT-251420","B"],["BZT-251620","B"],["BZT-013010","B"],
+    ["BZT-013510","B"],["BZT-013610","B"],["BZT-016010","B"],["BZT-016020","B"],["BZT-251320","B"],["BZT-251410","B"],
+    ["XZT-251410","B"],["XZT-013110","B"]
+  ],MEC:[
+    ["BOMBA KOD DESVIO P-1123A101 (Flowserve)","MB"],["BOMBA KOD DESVIO P-1123A102 (Flowserve)","MB"],
+    ["BOMBA KOD DESVIO P-1123A103 (Flowserve)","MB"],["BOMBA KOD DESVIO P-1123A104 (Flowserve)","MB"],
+    ["BOMBA KOD DESVIO P-1123A105 (Flowserve)","MB"],["BOMBA KOD DESVIO P-1123A106 (Flowserve)","MB"],
+    ["BOMBA KOD CENTRALIZADA P-1123B101 (Flowserve)","MB"],["BOMBA KOD CENTRALIZADA P-1123B102 (Flowserve)","MB"],
+    ["BOMBA KOD CENTRALIZADA P-1123B103 (Flowserve)","MB"],
+    ["BOMBA KOD COMPRESIÓN P-1123H101 (Centrifuga)","MB"],["BOMBA KOD COMPRESIÓN P-1123H102 (Centrifuga)","MB"]
+  ]},
+  "ST-19-SDDV":{INS:[
+    ["BZT 600142","B"],["BZT 600162","B"],["BZT 600172","B"],["BZT 600192","B"],
+    ["BZT 600122","B"],["BZT 600141","B"],["BZT 600151","B"],["BZT 600161","B"],["BZT 600171","B"],["BZT 600191","B"],
+    ["BZT 600112","B"],["BZT 600132","B"],["BZT 600152","B"],["BZT 600182","B"],["BZT 600202","B"],
+    ["BZT 600111","B"],["BZT 600121","B"],["BZT 600131","B"],["BZT 600181","B"],["BZT 600201","B"],
+    ["XZT 600150","B"],["XZT 600160","B"],["XZT 600190","B"],["XZT 600110","B"],["XZT 600130","B"],["XZT 600200","B"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600110 450 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600120 450 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600130 450 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600180 450 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600200 450 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600140 60 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600150 60 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600160 60 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600170 60 PSI","VALV_IP"],
+    ["VÁLVULA CONTROL PRESIÓN PV-600190 60 PSI","VALV_IP"],
+    ["TRANSMISOR PRESIÓN PIT-600140 60 PSI","VALV_IP"],
+    ["TRANSMISOR PRESIÓN PIT-600150 60 PSI","VALV_IP"],
+    ["TRANSMISOR PRESIÓN PIT-600110 450 PSI","VALV_IP"],
+    ["TRANSMISOR PRESIÓN PIT-600120 450 PSI","VALV_IP"],
+    ["TRANSMISOR PRESIÓN PZT-600120 60 PSI","VALV_IP"],
+    ["TRANSMISOR PRESIÓN PZT-6001410 450 PSI","VALV_IP"],
+    ["VÁLVULA XV-600120 SWITCHES POSICIÓN Y SOLENOIDE 60 PSI","VS"],
+    ["VÁLVULA XV-600110 SWITCHES POSICIÓN Y SOLENOIDE 450 PSI","VS"],
+    ["VÁLVULA XV-250240 SWITCHES POSICIÓN Y SOLENOIDE 60 PSI","VS"],
+    ["VÁLVULA XV-250140 SWITCHES POSICIÓN Y SOLENOIDE 450 PSI","VS"]
+  ],MEC:[]}
+};
+
+/* ================== Mapa de claves → plantillas ================== */
+const TAR_MAP={
+  "I":TAR.INSTR_STD,"I2":TAR.INSTR_STD2,"I3":TAR.INSTR_STD3,
+  "VALV":TAR.VALV,"VALV_SW":TAR.VALV_SW,"SOL":TAR.SOL,"SW":TAR.SW,"SW_LVL":TAR.SW_LVL,
+  "BZT":TAR.BZT,"VISOR":TAR.VISOR,"VIB":TAR.VIB,"VALV_IP":TAR.VALV_IP,
+  "IP_IND":TAR.IP_IND,"IP_POS":TAR.IP_POS,
+  "ELEC_MOTOR":TAR.ELEC_MOTOR,"ELEC_MOTOR_ALT":TAR.ELEC_MOTOR_ALT,
+  "MEC_BOMBA":TAR.MEC_BOMBA,"MEC_VENT":TAR.MEC_VENT,"MEC_INY":TAR.MEC_INY,
+  "MB":TAR.MEC_BOMBA,"MV":TAR.MEC_VENT,"MI":TAR.MEC_INY,
+  "W":TAR.SW,"G":TAR.VISOR,"B":TAR.BZT,"VS":TAR.VALV_SW
+};
+function tx(key){ return (TAR_MAP[key]||TAR.INSTR_STD).slice(); }
+
+function buildSigmaExtra(area){
+  const src = area==='compresion' ? SIGMA_COMP_EXTRA : SIGMA_SEP_SRC;
+  const out={};
+  Object.keys(src).forEach(sist=>{
+    const s=src[sist];
+    out[sist]={
+      INSTRUMENTACION:(s.INS||[]).map(([n,k])=>({nombre:n, tareas:tx(k)})),
+      MECANICA:(s.MEC||[]).map(([n,k])=>({nombre:n, tareas:tx(k)}))
+    };
+  });
+  return out;
+}
+function buildSepElementos(area){
+  const out={};
+  if (area==='separacion'){
+    Object.keys(SEP_ELEC_SRC).forEach(sist=>{
+      out[sist]=SEP_ELEC_SRC[sist].map(([n,k])=>({nombre:n, tareas:tx(k)}));
+    });
+  }
+  return out;
+}
+
+/* ================== CONFIGURACIÓN DE ÁREAS ================== */
+const AREAS={
+  compresion:{
+    storageKey:"cosj_activos_electricos_db_v1", sigaeArea:'compresion', fbKey:'compresion',
+    label:"COMPRESIÓN", brandLabel:"Centro Operativo San Joaquín · Área de Compresión",
+    terminoSingular:"Turbocompresor", terminoPlural:"Turbocompresores", usaAire:true,
+    sistemas:["TB-1","TB-2","TB-3","TB-4","TB-5","TA-1","TA-2","TA-3","TA-4"],
+    sistemasAire:["CA-1","CA-2","CA-3"],
+    baseAux:[
+      {id:"bomba_pre_post",nombre:"Bomba Pre/Post Lub."},
+      {id:"bomba_backup",nombre:"Bomba Back Up"},
+      {id:"enfriador_gas",nombre:"Enclouser 1"},
+      {id:"cava_turbina",nombre:"Enclouser 2"},
+      {id:"motor_arranque",nombre:"Motor de Arranque"},
+      {id:"pk_n2",nombre:"PK-N2 (Motor Paquete de Nitrógeno)"},
+      {id:"banco_baterias_125vdc",nombre:"Banco de Baterías 125 VDC"}
+    ],
+    seedMotores:{
+      "TA-4":["OPERATIVO","OPERATIVO","FALLA_MECANICA","OPERATIVO","OPERATIVO","FALLA_MECANICA","OPERATIVO","OPERATIVO"],
+      "TA-3":["OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO"],
+      "TA-2":["OPERATIVO","FALLA_MECANICA","FALLA_MECANICA","OPERATIVO","OPERATIVO","FALLA_MECANICA","FALLA_MECANICA","OPERATIVO"],
+      "TA-1":["SIN_MOTOR","VER_OBSERVACION","VER_OBSERVACION","VER_OBSERVACION","VER_OBSERVACION","VER_OBSERVACION","VER_OBSERVACION","VER_OBSERVACION"],
+      "TB-5":["OPERATIVO","SIN_MOTOR","SIN_MOTOR","OPERATIVO","SIN_MOTOR","OPERATIVO","SIN_MOTOR","OPERATIVO"],
+      "TB-4":["FALLA_MECANICA","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","SIN_MOTOR","FALLA_ELECTRICA","OPERATIVO"],
+      "TB-3":["OPERATIVO","FALLA_MECANICA","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","SIN_MOTOR"],
+      "TB-2":["OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","VER_OBSERVACION"],
+      "TB-1":["SIN_MOTOR","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","OPERATIVO","FALLA_MECANICA"]
+    },
+    sigmaExtra:buildSigmaExtra('compresion'),
+    sepElementos:null
+  },
+  separacion:{
+    storageKey:"cosj_activos_electricos_separacion_db_v1", sigaeArea:'separacion', fbKey:'separacion',
+    label:"SEPARACIÓN Y TRATAMIENTO", brandLabel:"Centro Operativo San Joaquín · Área de Separación y Tratamiento",
+    terminoSingular:"Sistema", terminoPlural:"Sistemas", usaAire:false,
+    sistemas:["ST-01-FE","ST-02-SB","ST-03-BCAP","ST-04-BCHP","ST-05-BAI","ST-06-GCMP","ST-07-SAP","ST-08-TR1","ST-09-TR2","ST-10-SIC","ST-11-TI1","ST-12-TI2","ST-13-TAI1","ST-14-TAI2","ST-15-TAC1","ST-16-TAC2","ST-17-TCR","ST-18-K","ST-19-SDDV"],
+    sistemasAire:[],
+    sistNombres:{"ST-01-FE":"FACILIDADES DE ENTRADA","ST-02-SB":"SEPARACIÓN BIFASICA","ST-03-BCAP":"BOMBAS DE CRUDO Y AGUA DE PRODUCCIÓN","ST-04-BCHP":"BOMBAS DE CRUDO HACIA PTA","ST-05-BAI":"BOMBAS DE AGUA DE INYECCIÓN","ST-06-GCMP":"GAS COMBUSTIBLE, MANTO PILOTO Y PURGA","ST-07-SAP":"SIST. AGUA DE PRODUCCIÓN","ST-08-TR1":"TANQUE DE REPOSO 1","ST-09-TR2":"TANQUE DE REPOSO 2","ST-10-SIC":"SIST. DE INTEGRACIÓN DE CONDENSADO","ST-11-TI1":"TANQUE INTERMEDIO 1","ST-12-TI2":"TANQUE INTERMEDIO 2","ST-13-TAI1":"TANQUE AGUA DE INYECCIÓN 1","ST-14-TAI2":"TANQUE AGUA DE INYECCIÓN 2","ST-15-TAC1":"TANQUE ALMACENAMIENTO CRUDO 1","ST-16-TAC2":"TANQUE ALMACENAMIENTO CRUDO 2","ST-17-TCR":"TANQUE DE CRUDO RECUPERADO","ST-18-K":"KOD","ST-19-SDDV":"SIST. DISTRIBUCIÓN, DESVÍO Y VENTEO"},
+    baseAux:[], seedMotores:null,
+    sigmaExtra:buildSigmaExtra('separacion'),
+    sepElementos:buildSepElementos('separacion')
+  }
+};
+
+/* ================== ESTADOS / CATÁLOGOS ================== */
+const ESTADOS={
+  OPERATIVO:{label:"Operativo",hex:"#29C46A",alarm:false,operational:true},
+  OPERATIVO_CON_OBSERVACION:{label:"Operativo con Observación",hex:"#FF8A2B",alarm:false,operational:true},
+  FALLA_ELECTRICA:{label:"Falla Eléctrica",hex:"#3E8CFF",alarm:true,operational:false},
+  FALLA_MECANICA:{label:"Falla Mecánica",hex:"#98A6C2",alarm:true,operational:false},
+  SIN_MOTOR:{label:"Sin Motor",hex:"#F14848",alarm:true,operational:false},
+  VER_OBSERVACION:{label:"Ver Observación",hex:"#E062E8",alarm:true,operational:false},
+  SIN_DATOS:{label:"Sin Datos",hex:"#47526B",alarm:false,operational:false}
+};
+function isOperational(e){ return !!(ESTADOS[e] && ESTADOS[e].operational); }
+const ESTADOS_AIR={ACTIVO:{label:"Activo",hex:"#29C46A"},FUERA_DE_SERVICIO:{label:"Fuera de Servicio",hex:"#F14848"},STAND_BY:{label:"Respaldo",hex:"#F2A93C"}};
+const METODOS_REPORTE=["Escrito","Correo o Mensajería WhatsApp","Verbal Directamente","Vía Telefónica"];
+const TIPOS_PRUEBA=["Mantenimiento Preventivo","Mantenimiento no Planificado","Inspección de Banco de Baterías","Megado (Resistencia de aislamiento)","Medición de amperaje","Prueba de autonomía de batería","Inspección visual","Cambio de componente","Otro"];
+const CHECKLIST_PREVENTIVO=TAR.ELEC_MOTOR_ALT.slice();
+const CHECKLIST_INSPECCION_BATERIAS=["Estado Físico de Baterías","Ajuste de Conexiones","Limpieza de Bornes","Temperatura Ambiente de Cuarto de Baterías"];
+const DB_VERSION=7;
+const EDIT_ACCESS_CODE="131179";
+
+/* ================== VARIABLES RUNTIME ================== */
+let AREA='compresion';
+let DB=null;
+let SIGMA_ELEMENTOS_EXTRA={};
+let SEP_ELEMENTOS={};
+function CFG(){ return AREAS[AREA]; }
+function nowISO(){ return new Date().toISOString(); }
+function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function userName(){ return document.getElementById("user-name").value.trim()||"Sin identificar"; }
+function userUID(){ return currentUser ? currentUser.uid : "local"; }
+function fmtDateTime(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+d.toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"}); }
+function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+function daysAgo(iso){ if(!iso) return Infinity; return (Date.now()-new Date(iso).getTime())/86400000; }
+function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove("show"),2800); }
+function requireOperador(){
+  const v=document.getElementById("user-name").value.trim();
+  if (!v){ alert("Debe ingresar el Nombre del Usuario antes de guardar cambios."); document.getElementById("user-name").focus(); return false; }
+  if (v.length < 3){ alert("El Nombre del Usuario debe tener al menos 3 caracteres."); return false; }
+  return true;
+}
+function requireEditAccess(){ const c=prompt("Esta acción requiere clave de acceso:\nIngrese la clave:"); if(c===null) return false; if(c!==EDIT_ACCESS_CODE){ alert("Clave incorrecta."); return false; } return true; }
+
+/* ================== MODELO DE DATOS ================== */
+function blankItemFields(){ return {tag:"",serial:"",hp:"",ampL1:null,ampL2:null,ampL3:null,ultimoMegado:null,observacion:"",actualizado:nowISO(),tecnico:"Carga inicial"}; }
+function buildAuxForComp(comp){
+  const base=(CFG().baseAux||[]).slice();
+  if (AREA==='compresion'){
+    if (comp.startsWith("TB")){ base.push({id:"enfriador_aceite_1",nombre:"Enfriador de Aceite 1"}); base.push({id:"enfriador_aceite_2",nombre:"Enfriador de Aceite 2"}); }
+    else base.push({id:"enfriador_aceite",nombre:"Enfriador de Aceite"});
+  }
+  return base.map(a=>({id:`${comp}_${a.id}`, nombre:a.nombre, estado:"SIN_DATOS", ...blankItemFields()}));
+}
+function buildAirCompressor(){ return {estado:"ACTIVO", observacion:""}; }
+function motoresCompresion(comp){
+  const seed=CFG().seedMotores[comp]||[];
+  return seed.map((estado,i)=>({id:`${comp}_M${i+1}`, numero:i+1, estado, ...blankItemFields(), observacion: estado==="VER_OBSERVACION"?"Requiere inspección de campo.":""}));
+}
+function motoresSeparacion(comp){
+  const lista=(CFG().sepElementos && CFG().sepElementos[comp])||[];
+  return lista.map((el,i)=>({id:`${comp}_M${i+1}`, numero:i+1, nombreReal:el.nombre, tareasReal:el.tareas, estado:"SIN_DATOS", ...blankItemFields()}));
+}
+function buildSeedDB(){
+  const db={version:DB_VERSION,area:AREA,compresores:{},compresoresAire:{},historial:[],mantenimiento:[],meta:{creado:nowISO()}};
+  CFG().sistemas.forEach(comp=>{
+    const motores = AREA==='compresion' ? motoresCompresion(comp) : motoresSeparacion(comp);
+    db.compresores[comp]={motores, auxiliares:buildAuxForComp(comp), compresorEstado:"OPERATIVO", compresorObservacion:""};
+  });
+  (CFG().sistemasAire||[]).forEach(comp=>{ db.compresoresAire[comp]=buildAirCompressor(); });
+  return db;
+}
+function buildBlankDB(){
+  const db={version:DB_VERSION,area:AREA,compresores:{},compresoresAire:{},historial:[],mantenimiento:[],meta:{creado:nowISO(),origen:"plantilla_en_blanco"}};
+  CFG().sistemas.forEach(comp=>{
+    let motores;
+    if (AREA==='compresion') motores=Array.from({length:8},(_,i)=>({id:`${comp}_M${i+1}`,numero:i+1,estado:"SIN_DATOS",...blankItemFields()}));
+    else motores=motoresSeparacion(comp);
+    db.compresores[comp]={motores, auxiliares:buildAuxForComp(comp), compresorEstado:"OPERATIVO", compresorObservacion:""};
+  });
+  (CFG().sistemasAire||[]).forEach(comp=>{ db.compresoresAire[comp]=buildAirCompressor(); });
+  return db;
+}
+function migrateDB(db){
+  if (!db.version) db.version=1;
+  if (!db.compresores) db.compresores={};
+  if (!db.compresoresAire) db.compresoresAire={};
+  if (!db.historial) db.historial=[];
+  if (!db.mantenimiento) db.mantenimiento=[];
+  CFG().sistemas.forEach(comp=>{
+    if (!db.compresores[comp]){
+      const motores = AREA==='compresion' ? motoresCompresion(comp) : motoresSeparacion(comp);
+      db.compresores[comp]={motores, auxiliares:buildAuxForComp(comp), compresorEstado:"OPERATIVO", compresorObservacion:""};
+    }
+    const c=db.compresores[comp];
+    if (c.compresorEstado===undefined) c.compresorEstado="OPERATIVO";
+    if (c.compresorObservacion===undefined) c.compresorObservacion="";
+    if (!c.motores) c.motores=[];
+    if (!c.auxiliares) c.auxiliares=buildAuxForComp(comp);
+    [...c.motores, ...c.auxiliares].forEach(it=>{
+      if (it.estado==="FALTA_CABLEADO") it.estado="OPERATIVO_CON_OBSERVACION";
+      if (it.tag===undefined) it.tag="";
+      if (it.serial===undefined) it.serial="";
+      if (it.hp===undefined) it.hp="";
+      if (it.ampL1===undefined) it.ampL1=null;
+      if (it.ampL2===undefined) it.ampL2=null;
+      if (it.ampL3===undefined) it.ampL3=null;
+      if (it.ultimoMegado===undefined) it.ultimoMegado=null;
+    });
+    buildAuxForComp(comp).forEach(a=>{ if (!c.auxiliares.find(x=>x.id===a.id)) c.auxiliares.push(a); });
+  });
+  (CFG().sistemasAire||[]).forEach(comp=>{
+    if (!db.compresoresAire[comp]) db.compresoresAire[comp]=buildAirCompressor();
+    if (db.compresoresAire[comp].estado==="RESPALDO") db.compresoresAire[comp].estado="STAND_BY";
+  });
+  db.version=DB_VERSION;
+  return db;
+}
+function loadDBLocal(){
+  try{ const raw=localStorage.getItem(CFG().storageKey); if(raw) return migrateDB(JSON.parse(raw)); }
+  catch(e){ console.warn("No se pudo leer almacenamiento local",e); }
+  return null;
+}
+function saveDBLocal(db){
+  try{ localStorage.setItem(CFG().storageKey, JSON.stringify(db)); }catch(e){}
+}
+function loadDB(){
+  const local = loadDBLocal();
+  if (local) return local;
+  const fresh = buildSeedDB();
+  saveDBLocal(fresh);
+  return fresh;
+}
+function saveDB(db){
+  db.meta=db.meta||{}; db.meta.ultimaModificacion=nowISO();
+  saveDBLocal(db);
+}
+
+/* ================== PERSISTENCIA (Firebase o Local) ================== */
+function persist(){
+  saveDB(DB);
+  if (!FB_OK || !DB_REF){ return; }
+  __localChange = true;
+  DB.meta = DB.meta || {};
+  DB.meta.ultimaModificacion = nowISO();
+  DB.meta.modificadoPor = userName();
+  DB.meta.modificadoPorUID = userUID();
+  setSyncStatus('syncing');
+  DB_REF.set(DB).then(()=>{
+    setTimeout(()=>setSyncStatus('online'), 800);
+  }).catch(err=>{
+    console.error("Error al guardar en Firebase:", err);
+    showToast("⚠ Error de conexión. Se guardó localmente.");
+    setSyncStatus('offline');
+  });
+  try{ broadcastToSigma(); }catch(e){}
+}
+
+/* ================== FIREBASE REALTIME SYNC ================== */
+function initRealtimeSync(){
+  if (!FB_OK){ return; }
+  if (UNSUBSCRIBE_DB) UNSUBSCRIBE_DB.off();
+  DB_REF = dbRT.ref(`sigim/${CFG().fbKey}`);
+  UNSUBSCRIBE_DB = DB_REF.on('value', (snapshot)=>{
+    const data = snapshot.val();
+    if (data && data.compresores){
+      DB = migrateDB(data);
+      saveDBLocal(DB);
+      if (__localChange){ __localChange = false; return; }
+      // Actualización desde otro dispositivo
+      if (UI.view === "dashboard") renderDashboard();
+      else if (UI.view === "historial") renderHistorial();
+      else if (UI.view === "mantenimiento") renderMantenimiento();
+      else if (UI.view === "reportes") renderReportes();
+      renderMetrics();
+      showToast("🔄 Datos actualizados por otro usuario");
+    } else {
+      // Primera vez: subir los datos locales/seed
+      persist();
+    }
+  }, (err)=>{
+    console.error("Error sync:", err);
+    setSyncStatus('offline');
+  });
+  // Indicador online/offline
+  dbRT.ref('.info/connected').on('value',(snap)=>{
+    setSyncStatus(snap.val() === true ? 'online' : 'offline');
+  });
+}
+function setSyncStatus(state){
+  const el = document.getElementById("sync-indicator");
+  if (!el) return;
+  el.classList.remove('online','syncing');
+  if (state === 'online') el.classList.add('online');
+  else if (state === 'syncing') el.classList.add('syncing','online');
+}
+
+/* ================== AUTENTICACIÓN ================== */
+function initAuth(){
+  if (!FB_OK) return;
+  authFB.onAuthStateChanged((user)=>{
+    if (user){
+      currentUser = user;
+      // Restaurar nombre del usuario desde Firebase
+      dbRT.ref(`sigim/usuarios/${user.uid}`).once('value').then(snap=>{
+        const info = snap.val();
+        if (info && info.nombre){
+          document.getElementById("user-name").value = info.nombre;
+          localStorage.setItem("sigim_nombre_usuario", info.nombre);
+        } else {
+          const saved = localStorage.getItem("sigim_nombre_usuario");
+          if (saved) document.getElementById("user-name").value = saved;
+        }
+      });
+      initRealtimeSync();
+      setSyncStatus('online');
+    }
+  });
+  authFB.signInAnonymously().catch((error)=>{
+    console.error("Error de autenticación:", error);
+    showToast("⚠ Sin conexión a Firebase. Modo local.");
+    setSyncStatus('offline');
+    DB = loadDB();
+    render();
+  });
+}
+
+/* ================== UTILIDADES ================== */
+function allItems(compList){
+  compList=compList||CFG().sistemas;
+  const out=[];
+  compList.forEach(comp=>{
+    if (!DB.compresores[comp]) return;
+    DB.compresores[comp].motores.forEach(m=>out.push({comp,tipo:"motor",...m,etiqueta:m.nombreReal||`Motor V${m.numero}`}));
+    DB.compresores[comp].auxiliares.forEach(a=>out.push({comp,tipo:"aux",...a,etiqueta:a.nombre}));
+  });
+  return out;
+}
+function computeMetrics(compList){
+  compList=compList||getSelectedCompresores();
+  const items=allItems(compList);
+  const total=items.length;
+  const porEstado={}; Object.keys(ESTADOS).forEach(k=>porEstado[k]=0);
+  items.forEach(it=>porEstado[it.estado]++);
+  const operativos=items.filter(it=>isOperational(it.estado)).length;
+  const alarmas=items.filter(it=>ESTADOS[it.estado].alarm).length;
+  const disponibilidad=total?Math.round((operativos/total)*100):0;
+  return {total,porEstado,operativos,alarmas,disponibilidad};
+}
+function getElementosDeCompresor(comp){
+  if (!DB.compresores[comp]) return [];
+  const c=DB.compresores[comp];
+  const out=c.motores.map(m=>({id:m.id,tipo:"motor",numero:m.numero,label:m.nombreReal||`Motor V${m.numero}`}));
+  c.auxiliares.forEach(a=>out.push({id:a.id,tipo:"aux",label:a.nombre}));
+  return out;
+}
+function getSelectedCompresores(){
+  return CFG().sistemas.filter(comp=>{
+    if (!UI.selectedComps.includes(comp)) return false;
+    if (!DB.compresores[comp]) return false;
+    const cEstado=DB.compresores[comp].compresorEstado||"OPERATIVO";
+    if (UI.filterCompEstado!=="TODOS" && cEstado!==UI.filterCompEstado) return false;
+    return true;
+  });
+}
+function getBancoBateriasItem(comp){
+  if (!DB.compresores[comp]) return null;
+  return DB.compresores[comp].auxiliares.find(a=>a.nombre==="Banco de Baterías 125 VDC");
+}
+function bancoBateriasFaltante(comp){
+  const item=getBancoBateriasItem(comp);
+  return !item||item.estado==="SIN_MOTOR"||item.estado==="SIN_DATOS";
+}
+function findElementoById(comp,id){
+  if (!DB.compresores[comp]) return null;
+  const item=DB.compresores[comp].motores.find(m=>m.id===id)||DB.compresores[comp].auxiliares.find(a=>a.id===id);
+  if (item){ const tipo=DB.compresores[comp].motores.find(m=>m.id===id)?"motor":"aux"; return {obj:item,tipo}; }
+  return null;
+}
+function getLastElectricalReading(id){
+  const candidates=(DB.mantenimiento||[]).filter(r=>r.elementoId===id && r.medicion && Object.values(r.medicion).some(v=>v!==null&&v!==undefined));
+  if (!candidates.length) return null;
+  candidates.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  return candidates[0];
+}
+function findItem(comp,tipo,id){
+  if (!DB.compresores[comp]) return null;
+  const list=tipo==="motor"?DB.compresores[comp].motores:DB.compresores[comp].auxiliares;
+  return list.find(x=>x.id===id);
+}
+
+/* ================== UI STATE ================== */
+const UI={view:"dashboard",filterEstado:"TODOS",filterCompEstado:"TODOS",selectedComps:[],search:"",drawerCtx:null,reportView:"resumen",reporteElectricoSel:[]};
+function resetUI(){ UI.view="dashboard"; UI.filterEstado="TODOS"; UI.filterCompEstado="TODOS"; UI.selectedComps=CFG().sistemas.slice(); UI.search=""; UI.drawerCtx=null; UI.reportView="resumen"; UI.reporteElectricoSel=[]; }
+
+/* ================== RELOJ ================== */
+function tickClock(){
+  const d=new Date();
+  document.getElementById("clock").textContent=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+  let ds=d.toLocaleDateString("es-VE",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  document.getElementById("dateline").textContent=ds.charAt(0).toUpperCase()+ds.slice(1);
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ================== RENDER: NAV / MÉTRICAS / TOOLBAR / LEGEND ================== */
+function renderNav(){ document.querySelectorAll(".nav-btn[data-view]").forEach(b=>b.classList.toggle("active", b.dataset.view===UI.view)); }
+function renderMetrics(){
+  const el=document.getElementById("metric-strip");
+  if (UI.view!=="dashboard"){ el.style.display="none"; return; }
+  el.style.display="flex";
+  const sel=getSelectedCompresores();
+  const k=computeMetrics(sel);
+  let airActivos=0,airFuera=0,airStandBy=0;
+  (CFG().sistemasAire||[]).forEach(comp=>{ const est=(DB.compresoresAire[comp]||{}).estado||"ACTIVO"; if(est==="ACTIVO") airActivos++; else if(est==="FUERA_DE_SERVICIO") airFuera++; else if(est==="STAND_BY") airStandBy++; });
+  const fueraServicioComp=sel.filter(c=>DB.compresores[c]&&DB.compresores[c].compresorEstado==="FUERA_DE_SERVICIO").length;
+  const selLbl=sel.length===CFG().sistemas.length?`Todos los ${CFG().terminoPlural.toLowerCase()}`:`${sel.length}/${CFG().sistemas.length} seleccionados`;
+  el.innerHTML=`
+    <div class="metric-card" style="--metric-c:var(--amber)"><div class="metric-val">${k.total}</div><div class="metric-lbl">Equipos · ${selLbl}</div></div>
+    <div class="metric-card" style="--metric-c:var(--c-operativo)"><div class="metric-val">${k.disponibilidad}%</div><div class="metric-lbl">Disponibilidad</div></div>
+    <div class="metric-card" style="--metric-c:var(--c-operativo)"><div class="metric-val">${k.operativos}</div><div class="metric-lbl">Operativos</div></div>
+    <div class="metric-card" style="--metric-c:var(--c-sin-motor)"><div class="metric-val">${k.alarmas}</div><div class="metric-lbl">Con novedad</div></div>
+    <div class="metric-card" style="--metric-c:#F14848"><div class="metric-val">${fueraServicioComp}</div><div class="metric-lbl">Fuera de servicio</div></div>
+    ${CFG().usaAire?`<div class="metric-card" style="--metric-c:var(--amber)"><div class="metric-val">${airActivos}</div><div class="metric-lbl">Compresores Aire Activos</div></div>`:``}
+  `;
+}
+function renderToolbar(){
+  const el=document.getElementById("toolbar");
+  if (UI.view==="dashboard"){
+    const kCounts=computeMetrics(getSelectedCompresores());
+    const estadoChips=[`<button class="chip ${UI.filterEstado==='TODOS'?'active':''}" data-f="TODOS"><span class="sw" style="background:var(--amber)"></span>Todos <span class="chip-count">${kCounts.total}</span></button>`]
+      .concat(Object.entries(ESTADOS).map(([k,v])=>`<button class="chip ${UI.filterEstado===k?'active':''}" data-f="${k}"><span class="sw" style="background:${v.hex}"></span>${v.label} <span class="chip-count">${kCounts.porEstado[k]}</span></button>`));
+    const compEstadoChips=["TODOS","OPERATIVO","FUERA_DE_SERVICIO"].map(k=>{
+      const label=k==="TODOS"?"Todos":k==="OPERATIVO"?"Activos":"Fuera de Servicio";
+      const color=k==="TODOS"?"var(--amber)":k==="OPERATIVO"?"#29C46A":"#F14848";
+      return `<button class="chip ${UI.filterCompEstado===k?'active':''}" data-cf="${k}"><span class="sw" style="background:${color}"></span>${label}</button>`;
+    }).join("");
+    const compChipsHTML=CFG().sistemas.map(c=>`<button class="chip comp-filter ${UI.selectedComps.includes(c)?'active':''}" data-mcomp="${c}">${c}</button>`).join("");
+
+    // Contadores de filtros activos
+    const filtrosEquipoActivos = (UI.filterCompEstado!=="TODOS"?1:0) + (UI.selectedComps.length!==CFG().sistemas.length?1:0);
+    const filtrosEstadoActivos = UI.filterEstado!=="TODOS"?1:0;
+
+    el.innerHTML=`
+      <details class="toolbar-details">
+        <summary>${CFG().terminoPlural} ${filtrosEquipoActivos>0?`<span class="badge-activo">${filtrosEquipoActivos} activo${filtrosEquipoActivos>1?'s':''}</span>`:''}</summary>
+        <div>
+          ${compChipsHTML}
+          <div style="width:1px;height:14px;background:var(--border);margin:0 4px;"></div>
+          ${compEstadoChips}
+        </div>
+      </details>
+      <details class="toolbar-details">
+        <summary>Estado del Equipo ${filtrosEstadoActivos>0?`<span class="badge-activo">1 activo</span>`:''}</summary>
+        <div>${estadoChips.join("")}</div>
+      </details>
+      <div class="toolbar-row">
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div id="search-box" style="min-width:0;flex:1;max-width:220px;">
+            <span class="ic">🔎</span>
+            <input id="search-input" type="text" placeholder="Buscar…" value="${UI.search}">
+          </div>
+          <button class="btn" id="btn-print"><span>🖶</span> Imprimir</button>
+          <button class="btn" id="btn-export-csv"><span>⇩</span> CSV</button>
+        </div>
+      </div>`;
+    el.querySelectorAll(".chip[data-mcomp]").forEach(c=>c.addEventListener("click",()=>{
+      const val=c.dataset.mcomp;
+      if (UI.selectedComps.length===CFG().sistemas.length) UI.selectedComps=[val];
+      else if (UI.selectedComps.includes(val)){ UI.selectedComps=UI.selectedComps.filter(x=>x!==val); if(!UI.selectedComps.length) UI.selectedComps=CFG().sistemas.slice(); }
+      else UI.selectedComps.push(val);
+      render();
+    }));
+    el.querySelectorAll(".chip[data-f]").forEach(c=>c.addEventListener("click",()=>{ UI.filterEstado=c.dataset.f; render(); }));
+    el.querySelectorAll(".chip[data-cf]").forEach(c=>c.addEventListener("click",()=>{ UI.filterCompEstado=c.dataset.cf; if(c.dataset.cf==="TODOS") UI.selectedComps=CFG().sistemas.slice(); render(); }));
+    document.getElementById("search-input").addEventListener("input",e=>{ UI.search=e.target.value; renderDashboard(); });
+    document.getElementById("btn-print").addEventListener("click",()=>window.print());
+    document.getElementById("btn-export-csv").addEventListener("click",exportDashboardCSV);
+  } else if (UI.view==="historial"){
+    el.innerHTML=`<div class="toolbar-row"><div id="search-box" style="margin-left:0;flex:1;max-width:280px;"><span class="ic">🔎</span><input id="hist-search" type="text" placeholder="Buscar en historial…"></div><button class="btn" id="btn-export-hist">⇩ Exportar historial (CSV)</button></div>`;
+    document.getElementById("hist-search").addEventListener("input",e=>{ UI._histSearch=e.target.value; renderHistorial(); });
+    document.getElementById("btn-export-hist").addEventListener("click",exportHistorialCSV);
+  } else if (UI.view==="mantenimiento"){
+    el.innerHTML=`<div class="toolbar-row"><div id="search-box" style="margin-left:0;flex:1;max-width:280px;"><span class="ic">🔎</span><input id="mant-search" type="text" placeholder="Buscar en mantenimiento…"></div><button class="btn primary" id="btn-add-mant">＋ Nuevo registro</button><button class="btn" id="btn-export-mant">⇩ CSV</button></div>`;
+    document.getElementById("mant-search").addEventListener("input",e=>{ UI._mantSearch=e.target.value; renderMantenimiento(); });
+    document.getElementById("btn-add-mant").addEventListener("click",()=>openMantModal());
+    document.getElementById("btn-export-mant").addEventListener("click",exportMantCSV);
+  } else el.innerHTML="";
+}
+function renderLegend(){
+  const el=document.getElementById("legend");
+  if (UI.view!=="dashboard"){ el.style.display="none"; return; }
+  el.style.display="flex";
+  el.innerHTML=Object.entries(ESTADOS).map(([k,v])=>`<div class="item"><span class="dot" style="background:${v.hex}"></span>${v.label}</div>`).join("");
+}
+
+/* ================== DASHBOARD ================== */
+function compKPI(comp){
+  if (!DB.compresores[comp]) return {pct:0,alarm:false};
+  const items=[...DB.compresores[comp].motores, ...DB.compresores[comp].auxiliares];
+  const total=items.length;
+  const op=items.filter(i=>isOperational(i.estado)).length;
+  const alarm=items.some(i=>ESTADOS[i.estado].alarm);
+  const pct=total?Math.round((op/total)*100):0;
+  return {pct,alarm};
+}
+function itemMatchesFilter(it){
+  if (UI.filterEstado!=="TODOS" && it.estado!==UI.filterEstado) return false;
+  if (UI.search){ const s=UI.search.toLowerCase(); const hay=`${it.comp} ${it.etiqueta} ${it.tag||''} ${it.serial||''}`.toLowerCase(); if(!hay.includes(s)) return false; }
+  return true;
+}
+function renderDashboard(){
+  const el=document.getElementById("content");
+  const compsVis=getSelectedCompresores();
+  const cards=compsVis.map(comp=>{
+    if (!DB.compresores[comp]) return "";
+    const cData=DB.compresores[comp];
+    const motores=cData.motores.map(m=>({comp,tipo:"motor",...m,etiqueta:m.nombreReal||`Motor V${m.numero}`}));
+    const auxiliares=cData.auxiliares.map(a=>({comp,tipo:"aux",...a,etiqueta:a.nombre}));
+    const anyFilter=UI.filterEstado!=="TODOS"||UI.search;
+    const motVis=motores.filter(itemMatchesFilter);
+    const auxVis=auxiliares.filter(itemMatchesFilter);
+    if (anyFilter && !motVis.length && !auxVis.length) return "";
+    const {pct,alarm}=compKPI(comp);
+    const ringColor=pct>=90?"#29C46A":pct>=60?"#FF8A2B":"#F14848";
+    const fuera=cData.compresorEstado==="FUERA_DE_SERVICIO";
+    const isActive=!fuera;
+    const motorLeds=motores.map(m=>{
+      const est=ESTADOS[m.estado];
+      const dim=anyFilter&&!itemMatchesFilter(m)?"opacity:.25;":"";
+      const blink=(m.estado==="SIN_MOTOR"||m.estado==="FALLA_ELECTRICA"||m.estado==="FALLA_MECANICA")?"blink":"";
+      return `<button class="motor-led" style="${dim}" data-comp="${comp}" data-tipo="motor" data-id="${m.id}" title="${(m.nombreReal||'').replace(/"/g,'&quot;')}"><span class="led-dot ${blink}" style="--dot:${est.hex}"></span><span class="led-label">N°${m.numero}</span><span class="led-status">${est.label}</span></button>`;
+    }).join("");
+    const auxPills=auxiliares.map(a=>{
+      const est=ESTADOS[a.estado];
+      const dim=anyFilter&&!itemMatchesFilter(a)?"opacity:.25;":"";
+      const blink=(a.estado==="SIN_MOTOR"||a.estado==="FALLA_ELECTRICA"||a.estado==="FALLA_MECANICA")?"blink":"";
+      return `<button class="aux-pill" style="${dim}" data-comp="${comp}" data-tipo="aux" data-id="${a.id}" title="${a.nombre}: ${est.label}"><span class="dot ${blink}" style="--dot:${est.hex}"></span>${a.nombre}</button>`;
+    }).join("");
+    let badgeHTML='<span class="badge-op">Operativo</span>';
+    let cardClass=isActive?'is-active':'';
+    if (fuera){ badgeHTML='<span class="badge-fuera">Fuera de Servicio</span>'; cardClass='fuera-servicio'; }
+    const subtitle=CFG().sistNombres&&CFG().sistNombres[comp]?`<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${CFG().sistNombres[comp]}</div>`:'';
+    return `<div class="comp-card ${alarm&&!fuera?'has-alarm':''} ${cardClass}" data-comp-card="${comp}">
+      <div class="comp-head"><div class="name-wrap"><div class="name">${comp}</div>${badgeHTML}${subtitle}</div>
+      <div class="head-actions"><button class="gear-btn" data-gear="${comp}" title="Configurar">⚙</button>
+      <div class="ring" style="--ring-c:${ringColor};--pct:${pct}"><div class="ring-inner">${pct}%</div></div></div></div>
+      <div class="motor-grid">${motorLeds}</div>
+      <div class="aux-strip">${auxPills}</div>
+    </div>`;
+  }).join("");
+  const airCards=(CFG().sistemasAire||[]).map(comp=>{
+    const data=DB.compresoresAire[comp]||{estado:"ACTIVO",observacion:""};
+    const estado=data.estado||"ACTIVO";
+    const color=(ESTADOS_AIR[estado]||ESTADOS_AIR.ACTIVO).hex;
+    const label=(ESTADOS_AIR[estado]||ESTADOS_AIR.ACTIVO).label;
+    const isActive=estado==="ACTIVO", fuera=estado==="FUERA_DE_SERVICIO", isStandBy=estado==="STAND_BY";
+    let badgeHTML='<span class="badge-op">Activo</span>';
+    let cardClass=isActive?'is-active':'';
+    if (fuera){ badgeHTML='<span class="badge-fuera">Fuera de Servicio</span>'; cardClass='fuera-servicio'; }
+    else if (isStandBy){ badgeHTML='<span class="badge-standby">Respaldo</span>'; cardClass='is-standby'; }
+    const pct=isActive?100:(isStandBy?50:0);
+    return `<div class="comp-card ${cardClass}" data-air-card="${comp}">
+      <div class="comp-head"><div class="name-wrap"><div class="name">${comp}</div>${badgeHTML}</div>
+      <div class="head-actions"><button class="gear-btn" data-air-gear="${comp}" title="Configurar">⚙</button>
+      <div class="ring" style="--ring-c:${color};--pct:${pct}"><div class="ring-inner">${pct}%</div></div></div></div>
+      <div class="motor-grid" style="grid-template-columns:1fr;"><div style="display:flex;align-items:center;gap:12px;padding:6px 8px;background:rgba(255,255,255,.02);border:1px solid var(--border-soft);border-radius:3px;">
+      <span class="led-dot" style="--dot:${color};width:14px;height:14px;"></span>
+      <span style="font-size:13px;font-weight:600;color:var(--text);">${label}</span>
+      <span style="font-size:10px;color:var(--text-dim);margin-left:auto;">${data.observacion||"Sin observaciones"}</span></div></div></div>`;
+  }).join("");
+  const visibleCount=(cards.match(/comp-card/g)||[]).length+(airCards.match(/comp-card/g)||[]).length;
+  const anyGlobalFilter=UI.filterEstado!=="TODOS"||UI.search;
+  let filterBanner="";
+  if (anyGlobalFilter){
+    const totalMatches=allItems(compsVis).filter(itemMatchesFilter).length;
+    const parts=[];
+    if (UI.filterEstado!=="TODOS") parts.push(`estado "<b style="color:${ESTADOS[UI.filterEstado].hex}">${ESTADOS[UI.filterEstado].label}</b>"`);
+    if (UI.search) parts.push(`texto "<b style="color:var(--text)">${UI.search}</b>"`);
+    filterBanner=`<div class="inline-info" style="margin-bottom:12px;">🔎 <b style="color:var(--text)">${totalMatches}</b> equipo(s) coinciden con ${parts.join(" y ")}.</div>`;
+  }
+  el.innerHTML=filterBanner+`<div id="comp-grid">${cards}${airCards}</div>`+(visibleCount===0?`<div class="empty-state"><div class="ic">◇</div>No hay equipos que coincidan con el filtro actual.</div>`:"");
+  el.querySelectorAll(".motor-led,.aux-pill").forEach(btn=>btn.addEventListener("click",ev=>{ ev.stopPropagation(); openDrawer(btn.dataset.comp, btn.dataset.tipo, btn.dataset.id); }));
+  el.querySelectorAll("[data-gear]").forEach(btn=>btn.addEventListener("click",ev=>{ ev.stopPropagation(); openCompresorModal(btn.dataset.gear); }));
+  el.querySelectorAll(".comp-card[data-comp-card]").forEach(card=>card.addEventListener("click",()=>openCompresorSummary(card.dataset.compCard)));
+  el.querySelectorAll("[data-air-gear]").forEach(btn=>btn.addEventListener("click",ev=>{ ev.stopPropagation(); openAirCompressorModal(btn.dataset.airGear); }));
+  el.querySelectorAll(".comp-card[data-air-card]").forEach(card=>card.addEventListener("click",()=>openAirCompressorSummary(card.dataset.airCard)));
+}
+
+/* ================== DRAWER ================== */
+function openDrawer(comp,tipo,id){
+  closeModal();
+  const item=findItem(comp,tipo,id);
+  if (!item){ showToast("Elemento no encontrado"); return; }
+  UI.drawerCtx={comp,tipo,id,pendingEstado:item.estado};
+  const etiqueta=tipo==="motor"?(item.nombreReal||`Motor N.° ${item.numero}`):item.nombre;
+  const isBateria=id.includes("banco_baterias_125vdc");
+  document.getElementById("drawer-eyebrow").textContent=`${comp} · ${isBateria?"EQUIPO AUXILIAR":"ELEMENTO"}`;
+  document.getElementById("drawer-title").textContent=etiqueta;
+  const body=document.getElementById("drawer-body");
+  const statusOptions=Object.entries(ESTADOS).map(([k,v])=>`<button type="button" class="status-opt ${item.estado===k?'selected':''}" data-k="${k}" style="--opt-c:${v.hex}"><span class="dot"></span>${v.label}</button>`).join("");
+  const megadoLine=item.ultimoMegado?`Último megado: <b style="color:var(--text)">${fmtDate(item.ultimoMegado)}</b> ${daysAgo(item.ultimoMegado)>365?'<span style="color:#F14848;">(vencido &gt;12 meses)</span>':''}`:`Último megado: <b style="color:#FF8A2B;">Sin registro</b>`;
+  let celdasHTML="",datosPlacaHTML="";
+  if (isBateria){
+    let inputs="";
+    for(let i=1;i<=10;i++){ const v=item.celdas?(item.celdas["c"+i]||""):""; inputs+=`<div class="field" style="margin-bottom:0;"><label>C${i}</label><input type="number" step="0.1" id="f-celda${i}" value="${v}" placeholder="V"></div>`; }
+    celdasHTML=`<div class="mini-title" style="margin-top:16px;">Voltaje de Celdas (VDC)</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:16px;">${inputs}</div>`;
+  } else {
+    datosPlacaHTML=`<div class="mini-title">Datos de placa</div>
+      <div class="grid3" style="margin-bottom:16px;">
+        <div class="field" style="margin-bottom:0;"><label>TAG</label><input type="text" id="f-tag" value="${item.tag||''}"></div>
+        <div class="field" style="margin-bottom:0;"><label>Serial</label><input type="text" id="f-serial" value="${item.serial||''}"></div>
+        <div class="field" style="margin-bottom:0;"><label>HP</label><input type="text" id="f-hp" value="${item.hp||''}"></div>
+      </div>
+      <div class="mini-title">Lectura de amperaje</div>
+      <div class="field"><div class="amp-row">
+        <div class="field"><label>L1</label><input type="number" step="0.1" id="f-l1" value="${item.ampL1??''}"></div>
+        <div class="field"><label>L2</label><input type="number" step="0.1" id="f-l2" value="${item.ampL2??''}"></div>
+        <div class="field"><label>L3</label><input type="number" step="0.1" id="f-l3" value="${item.ampL3??''}"></div>
+      </div></div>`;
+  }
+  const lastReading=getLastElectricalReading(id);
+  const medFmt=v=>(v===null||v===undefined)?"—":v;
+  const medicionHTML=lastReading?`
+    <div class="mini-title" style="margin-top:16px;">Últimas Mediciones Eléctricas</div>
+    <div class="grid3" style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">Amp. L1<br><b style="color:var(--text);font-size:13px;">${medFmt(lastReading.medicion.ampL1)}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">Amp. L2<br><b style="color:var(--text);font-size:13px;">${medFmt(lastReading.medicion.ampL2)}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">Amp. L3<br><b style="color:var(--text);font-size:13px;">${medFmt(lastReading.medicion.ampL3)}</b></div>
+    </div>
+    <div class="grid3" style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">V L1-L2<br><b style="color:var(--text);font-size:13px;">${medFmt(lastReading.medicion.voltL1L2)}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">V L1-L3<br><b style="color:var(--text);font-size:13px;">${medFmt(lastReading.medicion.voltL1L3)}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">V L2-L3<br><b style="color:var(--text);font-size:13px;">${medFmt(lastReading.medicion.voltL2L3)}</b></div>
+    </div>
+    <div class="meta-line">Registrada el <b style="color:var(--text-dim)">${fmtDate(lastReading.fecha)}</b> por <b style="color:var(--text-dim)">${lastReading.tecnico}</b> (${lastReading.tipoPrueba})</div>
+  `:`<div class="mini-title" style="margin-top:16px;">Últimas Mediciones Eléctricas</div><div class="dim" style="font-size:11px;margin-bottom:8px;">Sin mediciones registradas aún.</div>`;
+  body.innerHTML=`
+    <div class="field"><label>Estado actual</label><div class="status-grid" id="status-grid">${statusOptions}</div></div>
+    ${datosPlacaHTML}${celdasHTML}${medicionHTML}
+    <div class="field"><label>Observación / novedad</label><textarea id="f-obs" rows="4" placeholder="Detalle la condición, causa raíz o pendiente…">${item.observacion||""}</textarea></div>
+    <div class="field"><label>Usuario que realizó la medición / inspección</label><input type="text" id="f-tecnico" value="${userName()}" placeholder="Nombre del Usuario"></div>
+    ${!isBateria?`<div class="inline-info" style="margin-bottom:12px;"><span>${megadoLine}</span><button class="btn small" id="btn-registrar-megado">+ Registrar megado</button></div>`:``}
+    <div class="meta-line">Última actualización: ${fmtDateTime(item.actualizado)} · por ${item.tecnico||"—"}</div>`;
+  body.querySelectorAll(".status-opt").forEach(b=>b.addEventListener("click",()=>{
+    body.querySelectorAll(".status-opt").forEach(x=>x.classList.remove("selected"));
+    b.classList.add("selected"); UI.drawerCtx.pendingEstado=b.dataset.k;
+  }));
+  if (!isBateria) document.getElementById("btn-registrar-megado").addEventListener("click",()=>openMantModal({comp,elementoId:id,tipoPrueba:"Megado (Resistencia de aislamiento)"}));
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("drawer").classList.add("open");
+}
+function closeDrawer(){
+  document.getElementById("overlay").classList.remove("open");
+  document.getElementById("drawer").classList.remove("open");
+  UI.drawerCtx=null;
+}
+document.getElementById("drawer-cancel").addEventListener("click",closeDrawer);
+document.getElementById("overlay").addEventListener("click",()=>{ closeDrawer(); closeModal(); });
+document.getElementById("drawer-save").addEventListener("click",()=>{
+  if (!UI.drawerCtx) return;
+  if (!requireOperador()) return;
+  const {comp,tipo,id,pendingEstado}=UI.drawerCtx;
+  const item=findItem(comp,tipo,id);
+  if (!item){ showToast("Error: elemento no encontrado"); return; }
+  const estadoAnterior=item.estado;
+  const nuevaObs=document.getElementById("f-obs").value.trim();
+  const tecnico=document.getElementById("f-tecnico").value.trim()||userName();
+  item.estado=pendingEstado; item.observacion=nuevaObs; item.actualizado=nowISO(); item.tecnico=tecnico;
+  if (id.includes("banco_baterias_125vdc")){
+    item.celdas=item.celdas||{};
+    for(let i=1;i<=10;i++) item.celdas["c"+i]=document.getElementById("f-celda"+i).value;
+  } else {
+    item.tag=document.getElementById("f-tag").value.trim();
+    item.serial=document.getElementById("f-serial").value.trim();
+    item.hp=document.getElementById("f-hp").value.trim();
+    const l1=document.getElementById("f-l1").value; item.ampL1=l1===""?null:parseFloat(l1);
+    const l2=document.getElementById("f-l2").value; item.ampL2=l2===""?null:parseFloat(l2);
+    const l3=document.getElementById("f-l3").value; item.ampL3=l3===""?null:parseFloat(l3);
+  }
+  DB.historial.unshift({id:uid(),ts:nowISO(),comp,elemento:tipo==="motor"?(item.nombreReal||`Motor ${item.numero}`):item.nombre,estadoAnterior,estadoNuevo:pendingEstado,tecnico,usuarioUID:userUID(),observacion:nuevaObs});
+  persist(); closeDrawer();
+  showToast(`✓ ${comp} actualizado a "${ESTADOS[pendingEstado].label}"`);
+  render();
+});
+
+/* ================== MODALES ================== */
+function openDetalleModal(titulo,htmlContent){
+  const box=document.getElementById("modal-box");
+  box.innerHTML=`<div class="modal-head"><h3>${titulo}</h3><button class="close-x" id="modal-close">✕</button></div><div class="modal-body">${htmlContent}</div><div class="modal-foot"><button class="btn primary" id="modal-cancel">Cerrar</button></div>`;
+  document.getElementById("modal-close").addEventListener("click",closeModal);
+  document.getElementById("modal-cancel").addEventListener("click",closeModal);
+  document.getElementById("modal-overlay").classList.add("open");
+}
+function estadoTag(key){
+  const est=ESTADOS[key]; if (est) return `<span class="tag" style="--tag-c:${est.hex}">${est.label}</span>`;
+  if (key==="OPERATIVO") return `<span class="tag" style="--tag-c:#29C46A">Operativo</span>`;
+  if (key==="FUERA_DE_SERVICIO") return `<span class="tag" style="--tag-c:#F14848">Fuera de Servicio</span>`;
+  if (key==="ACTIVO") return `<span class="tag" style="--tag-c:#29C46A">Activo</span>`;
+  if (key==="STAND_BY") return `<span class="tag" style="--tag-c:#F2A93C">Respaldo</span>`;
+  return `<span class="tag" style="--tag-c:#888">${key}</span>`;
+}
+function openCompresorSummary(comp){
+  if (!DB.compresores[comp]){ showToast("Sistema no encontrado"); return; }
+  const c=DB.compresores[comp];
+  const {pct,alarm}=compKPI(comp);
+  const bateria=c.auxiliares.find(a=>a.nombre==="Banco de Baterías 125 VDC");
+  const motoresYSistemas=[...c.motores,...c.auxiliares.filter(a=>a!==bateria)];
+  const opMot=motoresYSistemas.filter(m=>isOperational(m.estado)).length;
+  const opAux=bateria&&isOperational(bateria.estado)?1:0;
+  const totAux=bateria?1:0;
+  const nombreLargo=CFG().sistNombres&&CFG().sistNombres[comp]?`<div class="field" style="margin-bottom:12px;"><label>Descripción</label><div style="color:var(--text)">${CFG().sistNombres[comp]}</div></div>`:"";
+  const html=`${nombreLargo}
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="field"><label>Estado General</label><div>${estadoTag(c.compresorEstado)}</div></div>
+      <div class="field"><label>Disponibilidad</label><div style="font-size:18px;font-weight:bold;color:var(--text);">${pct}%</div></div>
+    </div>
+    <div class="field"><label>Observaciones del Sistema</label><div style="background:var(--bg-grid);padding:10px;border-radius:4px;color:var(--text);border:1px solid var(--border-soft);">${c.compresorObservacion||"Sin observaciones registradas."}</div></div>
+    <div class="field"><label>Resumen de Equipos</label><ul style="margin:0;padding-left:20px;color:var(--text-dim);line-height:1.6;">
+      <li>Elementos operativos: <b style="color:var(--text)">${opMot}</b> / ${motoresYSistemas.length}</li>
+      <li>Equipos auxiliares operativos: <b style="color:var(--text)">${opAux}</b> / ${totAux}</li>
+      <li>Condición de alarma: ${alarm?'<span style="color:#F14848;font-weight:bold;">Sí, requiere atención</span>':'<span style="color:#29C46A;">Normal</span>'}</li>
+    </ul></div>`;
+  openDetalleModal(`Resumen: ${CFG().terminoSingular} ${comp}`,html);
+}
+function openAirCompressorSummary(comp){
+  const data=DB.compresoresAire[comp]||{estado:"ACTIVO",observacion:""};
+  const estado=data.estado||"ACTIVO";
+  const label=(ESTADOS_AIR[estado]||ESTADOS_AIR.ACTIVO).label;
+  const color=(ESTADOS_AIR[estado]||ESTADOS_AIR.ACTIVO).hex;
+  const html=`<div class="grid2" style="margin-bottom:16px;">
+      <div class="field"><label>Estado Actual</label><div><span class="tag" style="--tag-c:${color}">${label}</span></div></div>
+      <div class="field"><label>Disponibilidad</label><div style="font-size:18px;font-weight:bold;color:var(--text);">${estado==="ACTIVO"?"100%":estado==="STAND_BY"?"50%":"0%"}</div></div>
+    </div>
+    <div class="field"><label>Observaciones</label><div style="background:var(--bg-grid);padding:10px;border-radius:4px;color:var(--text);border:1px solid var(--border-soft);">${data.observacion||"Sin observaciones registradas."}</div></div>`;
+  openDetalleModal(`Resumen: Compresor de Aire ${comp}`,html);
+}
+function openCompresorModal(comp){
+  if (!DB.compresores[comp]){ showToast("Sistema no encontrado"); return; }
+  const c=DB.compresores[comp];
+  const box=document.getElementById("modal-box");
+  const customItems=c.auxiliares.filter(a=>a.custom);
+  const customListHTML=customItems.length?customItems.map(a=>`<div class="inline-info" style="margin-bottom:6px;"><span>${a.nombre}</span><button class="btn small danger" data-del-equipo="${a.id}">Eliminar</button></div>`).join(""):`<div class="dim" style="font-size:11px;">Aún no se han agregado equipos personalizados.</div>`;
+  box.innerHTML=`<div class="modal-head"><h3>Configuración · ${comp}</h3><button class="close-x" id="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Estado general</label><div class="status-grid" id="comp-status-grid">
+        <button type="button" class="status-opt ${c.compresorEstado==='OPERATIVO'?'selected':''}" data-k="OPERATIVO" style="--opt-c:#29C46A"><span class="dot"></span>Operativo</button>
+        <button type="button" class="status-opt ${c.compresorEstado==='FUERA_DE_SERVICIO'?'selected':''}" data-k="FUERA_DE_SERVICIO" style="--opt-c:#F14848"><span class="dot"></span>Fuera de Servicio</button>
+      </div></div>
+      <div class="field"><label>Observación general</label><textarea id="comp-obs" rows="3">${c.compresorObservacion||""}</textarea></div>
+      <div class="mini-title">Agregar Nuevo Motor o Sistema</div>
+      <div class="field"><label>Nombre</label><div style="display:flex;gap:8px;"><input type="text" id="nuevo-equipo-nombre" placeholder="Ej: Motor Bomba Inyección de Químicos" style="flex:1;"><button class="btn primary small" id="btn-agregar-equipo" style="flex-shrink:0;">+ Agregar</button></div></div>
+      <div id="lista-equipos-custom">${customListHTML}</div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" id="modal-cancel">Cancelar</button><button class="btn primary" id="modal-save-comp">Guardar configuración</button></div>`;
+  let pendingCompEstado=c.compresorEstado;
+  box.querySelectorAll("#comp-status-grid .status-opt").forEach(b=>b.addEventListener("click",()=>{ box.querySelectorAll("#comp-status-grid .status-opt").forEach(x=>x.classList.remove("selected")); b.classList.add("selected"); pendingCompEstado=b.dataset.k; }));
+  document.getElementById("btn-agregar-equipo").addEventListener("click",()=>{
+    if (!requireOperador()) return;
+    const nombre=document.getElementById("nuevo-equipo-nombre").value.trim();
+    if (!nombre){ alert("Ingrese un nombre."); return; }
+    c.auxiliares.push({id:`${comp}_custom_${uid()}`,nombre,estado:"SIN_DATOS",custom:true,...blankItemFields()});
+    persist(); showToast(`✓ "${nombre}" agregado a ${comp}`); openCompresorModal(comp); render();
+  });
+  box.querySelectorAll("[data-del-equipo]").forEach(btn=>btn.addEventListener("click",()=>{
+    const id=btn.dataset.delEquipo; const item=c.auxiliares.find(x=>x.id===id);
+    if (confirm(`¿Eliminar el equipo "${item?.nombre}" de ${comp}?`)){ c.auxiliares=c.auxiliares.filter(x=>x.id!==id); persist(); showToast("✓ Equipo eliminado"); openCompresorModal(comp); render(); }
+  }));
+  document.getElementById("modal-close").addEventListener("click",closeModal);
+  document.getElementById("modal-cancel").addEventListener("click",closeModal);
+  document.getElementById("modal-save-comp").addEventListener("click",()=>{
+    if (!requireOperador()) return;
+    const estadoAnterior=c.compresorEstado;
+    c.compresorEstado=pendingCompEstado;
+    c.compresorObservacion=document.getElementById("comp-obs").value.trim();
+    if (estadoAnterior!==pendingCompEstado){
+      DB.historial.unshift({id:uid(),ts:nowISO(),comp,elemento:`${CFG().terminoSingular} (estado general)`,estadoAnterior,estadoNuevo:pendingCompEstado,tecnico:userName(),usuarioUID:userUID(),observacion:c.compresorObservacion});
+    }
+    persist(); closeModal(); render(); showToast(`✓ Configuración de ${comp} guardada`);
+  });
+  document.getElementById("modal-overlay").classList.add("open");
+}
+function openAirCompressorModal(comp){
+  const data=DB.compresoresAire[comp]||{estado:"ACTIVO",observacion:""};
+  const box=document.getElementById("modal-box");
+  const estadoActual=data.estado||"ACTIVO";
+  box.innerHTML=`<div class="modal-head"><h3>Configuración · Compresor de Aire ${comp}</h3><button class="close-x" id="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Estado</label><div class="status-grid" id="air-status-grid">
+        ${Object.entries(ESTADOS_AIR).map(([k,v])=>`<button type="button" class="status-opt ${estadoActual===k?'selected':''}" data-k="${k}" style="--opt-c:${v.hex}"><span class="dot"></span>${v.label}</button>`).join("")}
+      </div></div>
+      <div class="field"><label>Observación</label><textarea id="air-obs" rows="3">${data.observacion||""}</textarea></div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" id="modal-cancel">Cancelar</button><button class="btn primary" id="modal-save-air">Guardar</button></div>`;
+  let pendingEstado=estadoActual;
+  box.querySelectorAll("#air-status-grid .status-opt").forEach(b=>b.addEventListener("click",()=>{ box.querySelectorAll("#air-status-grid .status-opt").forEach(x=>x.classList.remove("selected")); b.classList.add("selected"); pendingEstado=b.dataset.k; }));
+  document.getElementById("modal-close").addEventListener("click",closeModal);
+  document.getElementById("modal-cancel").addEventListener("click",closeModal);
+  document.getElementById("modal-save-air").addEventListener("click",()=>{
+    if (!requireOperador()) return;
+    const estadoAnterior=(DB.compresoresAire[comp]||{}).estado||"ACTIVO";
+    DB.compresoresAire[comp]={estado:pendingEstado,observacion:document.getElementById("air-obs").value.trim()};
+    if (estadoAnterior!==pendingEstado){
+      DB.historial.unshift({id:uid(),ts:nowISO(),comp,elemento:`Compresor de Aire ${comp}`,estadoAnterior,estadoNuevo:pendingEstado,tecnico:userName(),usuarioUID:userUID(),observacion:DB.compresoresAire[comp].observacion});
+    }
+    persist(); closeModal(); render(); showToast(`✓ Configuración de ${comp} guardada`);
+  });
+  document.getElementById("modal-overlay").classList.add("open");
+}
+function closeModal(){ document.getElementById("modal-overlay").classList.remove("open"); }
+
+/* ================== HISTORIAL ================== */
+function toDatetimeLocalValue(iso){ const d=new Date(iso); const pad=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function renderHistorial(){
+  const el=document.getElementById("content");
+  let rows=DB.historial;
+  if (UI._histSearch){ const s=UI._histSearch.toLowerCase(); rows=rows.filter(r=>`${r.comp} ${r.elemento} ${r.tecnico} ${r.observacion}`.toLowerCase().includes(s)); }
+  if (!rows.length){ el.innerHTML=`<div class="empty-state"><div class="ic">≡</div>Aún no se han registrado cambios de estado.</div>`; return; }
+  el.innerHTML=`
+    <div class="section-title"><div><h2>Historial de Cambios</h2><div class="sub">${rows.length} registro(s) — Haz clic para ver el detalle</div></div></div>
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Fecha / Hora</th><th>${CFG().terminoSingular}</th><th>Elemento</th><th>Estado anterior</th><th>Estado nuevo</th><th>Usuario</th><th>Observación</th><th></th></tr></thead>
+      <tbody>${rows.map(r=>`<tr class="clickable-row" data-hist-id="${r.id}">
+        <td class="mono">${fmtDateTime(r.ts)}</td><td class="mono">${r.comp}</td><td>${r.elemento}</td>
+        <td>${estadoTag(r.estadoAnterior)}</td><td>${estadoTag(r.estadoNuevo)}</td>
+        <td>${r.tecnico}</td><td class="dim">${r.observacion||"—"}</td>
+        <td style="text-align:right;white-space:nowrap;"><button class="btn small" data-edit-hist="${r.id}">Editar</button></td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+  el.querySelectorAll("tr[data-hist-id]").forEach(tr=>tr.addEventListener("click",()=>{
+    const r=DB.historial.find(x=>x.id===tr.dataset.histId); if(!r) return;
+    const html=`
+      <div class="field"><label>Fecha y Hora</label><div class="mono" style="color:var(--text)">${fmtDateTime(r.ts)}</div></div>
+      <div class="field"><label>Equipo</label><div style="color:var(--text);font-size:14px;font-weight:bold;">${r.comp} — ${r.elemento}</div></div>
+      <div class="grid2" style="margin-bottom:16px;">
+        <div class="field" style="margin-bottom:0"><label>Estado Anterior</label><div>${estadoTag(r.estadoAnterior)}</div></div>
+        <div class="field" style="margin-bottom:0"><label>Estado Nuevo</label><div>${estadoTag(r.estadoNuevo)}</div></div>
+      </div>
+      <div class="field"><label>Usuario</label><div style="color:var(--text)">${r.tecnico}</div></div>
+      <div class="field"><label>Observaciones</label><div style="background:var(--bg-grid);padding:10px;border-radius:4px;color:var(--text);border:1px solid var(--border-soft);">${r.observacion||"Sin observaciones."}</div></div>`;
+    openDetalleModal("Detalle de Cambio de Estado",html);
+  }));
+  el.querySelectorAll("[data-edit-hist]").forEach(b=>b.addEventListener("click",(e)=>{ e.stopPropagation(); if(!requireEditAccess()) return; openHistorialEditModal(b.dataset.editHist); }));
+}
+function openHistorialEditModal(id){
+  const r=DB.historial.find(x=>x.id===id); if(!r) return;
+  const box=document.getElementById("modal-box");
+  const estadoOptions=Object.entries(ESTADOS).map(([k,v])=>`<option value="${k}" ${r.estadoAnterior===k?'selected':''}>${v.label}</option>`).join("");
+  const estadoOptionsNuevo=Object.entries(ESTADOS).map(([k,v])=>`<option value="${k}" ${r.estadoNuevo===k?'selected':''}>${v.label}</option>`).join("");
+  box.innerHTML=`<div class="modal-head"><h3>Editar Registro de Historial</h3><button class="close-x" id="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="inline-info" style="margin-bottom:14px;border-color:var(--amber);color:var(--amber);">✎ Editando un registro ya guardado (clave).</div>
+      <div class="field"><label>Fecha y Hora</label><input type="datetime-local" id="eh-fecha-hora" value="${toDatetimeLocalValue(r.ts)}"></div>
+      <div class="grid2"><div class="field"><label>${CFG().terminoSingular}</label><input type="text" id="eh-comp" value="${r.comp}"></div><div class="field"><label>Elemento</label><input type="text" id="eh-elemento" value="${r.elemento}"></div></div>
+      <div class="grid2"><div class="field"><label>Estado Anterior</label><select id="eh-estado-ant">${estadoOptions}</select></div><div class="field"><label>Estado Nuevo</label><select id="eh-estado-nuevo">${estadoOptionsNuevo}</select></div></div>
+      <div class="field"><label>Usuario</label><input type="text" id="eh-tecnico" value="${r.tecnico}"></div>
+      <div class="field"><label>Observación</label><textarea id="eh-obs" rows="3">${r.observacion||""}</textarea></div>
+    </div>
+    <div class="modal-foot"><button class="btn danger" id="modal-delete-hist" style="margin-right:auto;">Eliminar registro</button><button class="btn ghost" id="modal-cancel">Cancelar</button><button class="btn primary" id="modal-save-hist">Guardar cambios</button></div>`;
+  document.getElementById("modal-close").addEventListener("click",closeModal);
+  document.getElementById("modal-cancel").addEventListener("click",closeModal);
+  document.getElementById("modal-delete-hist").addEventListener("click",()=>{
+    if (confirm("¿Eliminar permanentemente este registro?")){ DB.historial=DB.historial.filter(x=>x.id!==id); persist(); closeModal(); renderHistorial(); showToast("✓ Registro eliminado"); }
+  });
+  document.getElementById("modal-save-hist").addEventListener("click",()=>{
+    if (!requireOperador()) return;
+    const fhVal=document.getElementById("eh-fecha-hora").value;
+    if (fhVal){ const d=new Date(fhVal); if(!isNaN(d.getTime())) r.ts=d.toISOString(); }
+    r.comp=document.getElementById("eh-comp").value.trim();
+    r.elemento=document.getElementById("eh-elemento").value.trim();
+    r.estadoAnterior=document.getElementById("eh-estado-ant").value;
+    r.estadoNuevo=document.getElementById("eh-estado-nuevo").value;
+    r.tecnico=document.getElementById("eh-tecnico").value.trim()||userName();
+    r.observacion=document.getElementById("eh-obs").value.trim();
+    persist(); closeModal(); renderHistorial(); showToast("✓ Registro actualizado");
+  });
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+/* ================== MANTENIMIENTO ================== */
+function renderMantenimiento(){
+  const el=document.getElementById("content");
+  let rows=DB.mantenimiento||[];
+  if (UI._mantSearch){ const s=UI._mantSearch.toLowerCase(); rows=rows.filter(r=>`${r.comp} ${r.equipo} ${r.tipoPrueba} ${r.resultado} ${r.tecnico}`.toLowerCase().includes(s)); }
+  const tableOrEmpty=rows.length===0?`<div class="empty-state"><div class="ic">⚙</div>No hay registros de mantenimiento. Use "Nuevo registro" para agregar.</div>`:
+    `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Fecha</th><th>${CFG().terminoSingular}</th><th>Equipo</th><th>Especialidad</th><th>Tipo</th><th>Resultado</th><th>Usuario</th><th></th></tr></thead>
+      <tbody>${rows.map(r=>`<tr class="clickable-row" data-mant-id="${r.id}">
+        <td class="mono">${r.fecha}</td><td class="mono">${r.comp||"—"}</td><td>${r.equipo}</td>
+        <td>${r.especialidad||"ELECTRICIDAD"}</td>
+        <td>${r.tipoPrueba}</td><td>${r.resultado}</td><td>${r.tecnico}</td>
+        <td style="text-align:right;white-space:nowrap;"><button class="btn small" data-edit-mant="${r.id}">Editar</button><button class="btn small danger" data-del="${r.id}">Eliminar</button></td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+  el.innerHTML=`<div class="section-title"><div><h2>Registro de Mantenimiento</h2><div class="sub">Haz clic para ver el detalle</div></div></div>${tableOrEmpty}`;
+  el.querySelectorAll("tr[data-mant-id]").forEach(tr=>tr.addEventListener("click",e=>{
+    if (e.target.tagName==='BUTTON') return;
+    const r=DB.mantenimiento.find(x=>x.id===tr.dataset.mantId); if(!r) return;
+    function renderTareas(tareas,completadas){
+      return `<div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-grid);padding:10px 12px;border-radius:4px;border:1px solid var(--border-soft);">
+        ${tareas.map(t=>{ const h=completadas.includes(t); return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:${h?'var(--text)':'var(--text-faint)'};"><span style="color:${h?'#29C46A':'#F14848'};font-weight:800;">${h?'✓':'✗'}</span> ${t}</div>`; }).join("")}
+      </div>`;
+    }
+    const checklistHTML=r.checklist?`<div class="field"><label>Checklist</label>${renderTareas(r.checklist.tareas,r.checklist.completadas)}</div>`:"";
+    const noPlanHTML=r.noPlanificado?`<div class="field"><label>Reporte de Falla</label><div style="background:var(--bg-grid);padding:10px 12px;border-radius:4px;border:1px solid var(--border-soft);display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text);">
+      <div><span class="dim">Solicitante:</span> <b>${r.noPlanificado.solicitante||"—"}</b></div>
+      <div><span class="dim">Falla:</span> ${r.noPlanificado.falla||"—"}</div>
+      <div><span class="dim">Fecha:</span> ${r.noPlanificado.fechaReporte||"—"}</div>
+      <div><span class="dim">Método:</span> ${r.noPlanificado.metodoReporte||"—"}</div></div></div>`:"";
+    const autonomiaHTML=r.autonomia?`<div class="field"><label>Autonomía (12 lecturas)</label><div class="table-wrap" style="max-height:220px;"><table class="data-table" style="font-size:10.5px;"><thead><tr><th>#</th><th>Tiempo (min)</th><th>Voltaje (V)</th><th>Corriente (A)</th></tr></thead><tbody>${r.autonomia.map((l,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${l.tiempoMin??"—"}</td><td class="mono">${l.voltaje??"—"}</td><td class="mono">${l.corriente??"—"}</td></tr>`).join("")}</tbody></table></div></div>`:"";
+    const inspBatHTML=r.inspeccionBaterias?`<div class="field"><label>Voltaje por Celda</label><div class="grid3" style="margin-bottom:10px;">${r.inspeccionBaterias.celdas.map((v,i)=>`<div style="font-size:11px;color:var(--text-dim);background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:6px 8px;text-align:center;">Celda ${i+1}<br><b style="color:var(--text);font-size:13px;">${v??"—"}</b></div>`).join("")}</div></div><div class="field"><label>Voltaje General</label><div style="color:var(--text);font-weight:bold;font-size:15px;">${r.inspeccionBaterias.voltajeGeneral??"—"} V</div></div><div class="field"><label>Checklist</label>${renderTareas(r.inspeccionBaterias.tareas,r.inspeccionBaterias.completadas)}</div>`:"";
+    const med=r.medicion||{};
+    const medHTML=Object.values(med).some(v=>v!==null&&v!==undefined)?`<div class="field"><label>Mediciones Eléctricas</label><div class="grid3" style="gap:6px;">
+      <div style="font-size:11px;color:var(--text-dim);text-align:center;">Amp L1<br><b style="color:var(--text)">${med.ampL1??"—"}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:center;">Amp L2<br><b style="color:var(--text)">${med.ampL2??"—"}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:center;">Amp L3<br><b style="color:var(--text)">${med.ampL3??"—"}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:center;">V L1-L2<br><b style="color:var(--text)">${med.voltL1L2??"—"}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:center;">V L1-L3<br><b style="color:var(--text)">${med.voltL1L3??"—"}</b></div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:center;">V L2-L3<br><b style="color:var(--text)">${med.voltL2L3??"—"}</b></div>
+    </div></div>`:"";
+    const html=`
+      <div class="field"><label>Fecha</label><div class="mono" style="color:var(--text)">${r.fecha}</div></div>
+      <div class="field"><label>Equipo Intervenido</label><div style="color:var(--text);font-size:14px;font-weight:bold;">${r.comp} — ${r.equipo}</div></div>
+      <div class="field"><label>Especialidad</label><div style="color:var(--text)">${r.especialidad||"ELECTRICIDAD"}</div></div>
+      <div class="field"><label>Tipo de Prueba / Tarea</label><div style="color:var(--text)">${r.tipoPrueba}</div></div>
+      ${checklistHTML}${noPlanHTML}${autonomiaHTML}${inspBatHTML}${medHTML}
+      <div class="field"><label>Resultado</label><div style="color:var(--text);font-weight:bold;">${r.resultado||"—"}</div></div>
+      <div class="field"><label>Usuario</label><div style="color:var(--text)">${r.tecnico}</div></div>
+      <div class="field"><label>Observaciones</label><div style="background:var(--bg-grid);padding:10px;border-radius:4px;color:var(--text);border:1px solid var(--border-soft);">${r.observacion||"Sin observaciones."}</div></div>`;
+    openDetalleModal("Detalle de Mantenimiento",html);
+  }));
+  el.querySelectorAll("[data-edit-mant]").forEach(b=>b.addEventListener("click",e=>{ e.stopPropagation(); if(!requireEditAccess()) return; openMantModal({editId:b.dataset.editMant}); }));
+  el.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();
+    if (confirm("¿Eliminar este registro?")){ DB.mantenimiento=DB.mantenimiento.filter(r=>r.id!==b.dataset.del); persist(); renderMantenimiento(); }
+  }));
+}
+function checklistParaElemento(comp,elementoId,especialidad){
+  especialidad=especialidad||"ELECTRICIDAD";
+  if (especialidad==="ELECTRICIDAD"){
+    const info=findElementoById(comp,elementoId);
+    if (info && info.obj && Array.isArray(info.obj.tareasReal) && info.obj.tareasReal.length) return info.obj.tareasReal.slice();
+    return CHECKLIST_PREVENTIVO.slice();
+  }
+  const prefix=especialidad==="INSTRUMENTACION"?"INS":"MEC";
+  const m=new RegExp("_"+prefix+"(\\d+)$").exec(elementoId||"");
+  if (m){
+    const lista=(SIGMA_ELEMENTOS_EXTRA[comp] && SIGMA_ELEMENTOS_EXTRA[comp][especialidad])||[];
+    const item=lista[parseInt(m[1])-1];
+    if (item && item.tareas && item.tareas.length) return item.tareas.slice();
+  }
+  return [];
+}
+function openMantModal(prefill){
+  prefill=prefill||{};
+  const box=document.getElementById("modal-box");
+  const existing=prefill.editId?DB.mantenimiento.find(r=>r.id===prefill.editId):null;
+  const isEdit=!!existing;
+  const base=existing||prefill;
+  const sistemasCombo=[...CFG().sistemas,...(CFG().sistemasAire||[])];
+  const compOptions=sistemasCombo.map(c=>`<option value="${c}" ${base.comp===c?'selected':''}>${c}${CFG().sistNombres&&CFG().sistNombres[c]?' — '+CFG().sistNombres[c]:''}</option>`).join("");
+  const initialTipo=base.tipoPrueba||TIPOS_PRUEBA[0];
+  const tipoOptions=TIPOS_PRUEBA.map(t=>`<option value="${t}" ${initialTipo===t?'selected':''}>${t}</option>`).join("");
+  const initialComp=base.comp||sistemasCombo[0];
+  const initialEspecialidad=base.especialidad||"ELECTRICIDAD";
+  const especialidadOptions=["ELECTRICIDAD","INSTRUMENTACION","MECANICA"].map(es=>{
+    const lbl=es==="ELECTRICIDAD"?"Electricidad":es==="INSTRUMENTACION"?"Instrumentación":"Mecánica";
+    return `<option value="${es}" ${initialEspecialidad===es?'selected':''}>${lbl}</option>`;
+  }).join("");
+  function elementoOptions(comp,especialidad){
+    especialidad=especialidad||"ELECTRICIDAD";
+    if ((CFG().sistemasAire||[]).includes(comp)) return `<option value="compresor_aire">Compresor de Aire</option>`;
+    if (!DB.compresores[comp]) return `<option value="">Sin elementos</option>`;
+    if (especialidad==="ELECTRICIDAD"){
+      const items=getElementosDeCompresor(comp);
+      if (!items.length) return `<option value="">Sin elementos</option>`;
+      return items.map(e=>`<option value="${e.id}" ${base.elementoId===e.id?'selected':''}>${e.label}</option>`).join("");
+    }
+    const lista=(SIGMA_ELEMENTOS_EXTRA[comp] && SIGMA_ELEMENTOS_EXTRA[comp][especialidad])||[];
+    if (!lista.length) return `<option value="">Sin componentes de ${especialidad.toLowerCase()} cargados</option>`;
+    const prefix=especialidad==="INSTRUMENTACION"?"INS":"MEC";
+    return lista.map((c,i)=>`<option value="${comp}_${prefix}${i+1}" ${base.elementoId===(comp+"_"+prefix+(i+1))?'selected':''}>${c.nombre}</option>`).join("");
+  }
+  function renderChecklistItems(tareas,marcadas){
+    if (!tareas.length) return `<div class="hint">No hay checklist cargado para este componente.</div>`;
+    return tareas.map(t=>`<label class="check-row" style="margin-bottom:0;"><input type="checkbox" class="chk-preventivo" value="${t}" ${marcadas.includes(t)?'checked':''}> ${t}</label>`).join("");
+  }
+  const marcadasPreventivo=(existing&&existing.checklist&&existing.checklist.completadas)||[];
+  const itemsInicialComp=(CFG().sistemasAire||[]).includes(initialComp)?[]:getElementosDeCompresor(initialComp);
+  const initialElementoId=base.elementoId||(itemsInicialComp[0]&&itemsInicialComp[0].id)||"";
+  const tareasIniciales=checklistParaElemento(initialComp,initialElementoId,initialEspecialidad);
+  const checklistHTML=renderChecklistItems(tareasIniciales,marcadasPreventivo);
+  const inputStyle="width:100%;background:var(--bg-grid);border:1px solid var(--border);color:var(--text);border-radius:3px;padding:6px;font-size:14px;";
+  const autonomiaData=(existing&&existing.autonomia)||[];
+  const autonomiaRows=Array.from({length:12},(_,i)=>{ const n=i+1; const l=autonomiaData[i]||{}; return `<tr><td class="mono">${n}</td><td><input type="number" class="autonomia-t" data-i="${n}" value="${l.tiempoMin??n*5}" style="${inputStyle}"></td><td><input type="number" step="0.01" class="autonomia-v" data-i="${n}" value="${l.voltaje??''}" style="${inputStyle}"></td><td><input type="number" step="0.01" class="autonomia-a" data-i="${n}" value="${l.corriente??''}" style="${inputStyle}"></td></tr>`; }).join("");
+  const celdasData=(existing&&existing.inspeccionBaterias&&existing.inspeccionBaterias.celdas)||[];
+  const celdasHTML=Array.from({length:10},(_,i)=>`<div class="field" style="margin-bottom:0;"><label>Celda ${i+1} (V)</label><input type="number" step="0.01" class="celda-v" data-c="${i+1}" value="${celdasData[i]??''}"></div>`).join("");
+  const marcadasInspBat=(existing&&existing.inspeccionBaterias&&existing.inspeccionBaterias.completadas)||[];
+  const checklistInspBatHTML=CHECKLIST_INSPECCION_BATERIAS.map(t=>`<label class="check-row" style="margin-bottom:0;"><input type="checkbox" class="chk-insp-bateria" value="${t}" ${marcadasInspBat.includes(t)?'checked':''}> ${t}</label>`).join("");
+  const metodoOptions=METODOS_REPORTE.map(m=>`<option value="${m}" ${existing&&existing.noPlanificado&&existing.noPlanificado.metodoReporte===m?'selected':''}>${m}</option>`).join("");
+  const med=(existing&&existing.medicion)||{};
+  const nP=(existing&&existing.noPlanificado)||{};
+  box.innerHTML=`
+    <div class="modal-head"><h3>${isEdit?"Editar registro de mantenimiento":"Nuevo registro de mantenimiento"}</h3><button class="close-x" id="modal-close">✕</button></div>
+    <div class="modal-body">
+      ${isEdit?`<div class="inline-info" style="margin-bottom:14px;border-color:var(--amber);color:var(--amber);">✎ Editando un registro guardado (clave).</div>`:""}
+      <div class="grid2">
+        <div class="field"><label>Fecha</label><input type="text" id="m-fecha" value="${base.fecha||todayStr()}" placeholder="AAAA-MM-DD"></div>
+        <div class="field"><label>${CFG().terminoSingular}</label><select id="m-comp">${compOptions}</select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Especialidad</label><select id="m-especialidad">${especialidadOptions}</select></div>
+        <div class="field"><label>Equipo / Componente</label><select id="m-elemento">${elementoOptions(initialComp,initialEspecialidad)}</select></div>
+      </div>
+      <div class="field"><label>Tipo de prueba</label><select id="m-tipo">${tipoOptions}</select></div>
+      <div class="field" id="m-checklist-wrap" style="display:none;"><label>Checklist de Mantenimiento Preventivo</label><div id="m-checklist-items" style="display:flex;flex-direction:column;gap:9px;background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:10px 12px;max-height:300px;overflow-y:auto;">${checklistHTML}</div></div>
+      <div class="field" id="m-no-planificado-wrap" style="display:none;"><label>Datos del Reporte de Falla</label><div style="background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:10px 12px;">
+        <div class="field"><label>Solicitante</label><input type="text" id="np-solicitante" value="${nP.solicitante||''}"></div>
+        <div class="field"><label>Descripción de Falla</label><textarea id="np-falla" rows="3">${nP.falla||''}</textarea></div>
+        <div class="grid2"><div class="field" style="margin-bottom:0;"><label>Fecha del Reporte</label><input type="text" id="np-fecha-reporte" value="${nP.fechaReporte||todayStr()}"></div>
+        <div class="field" style="margin-bottom:0;"><label>Método</label><select id="np-metodo">${metodoOptions}</select></div></div>
+      </div></div>
+      <div class="field" id="m-autonomia-wrap" style="display:none;"><label>Registro de Autonomía — 12 lecturas</label><div style="max-height:260px;overflow-y:auto;border:1px solid var(--border-soft);border-radius:4px;"><table class="data-table" style="font-size:10.5px;"><thead><tr><th>#</th><th>Tiempo (min)</th><th>Voltaje (V)</th><th>Corriente (A)</th></tr></thead><tbody>${autonomiaRows}</tbody></table></div></div>
+      <div class="field" id="m-bateria-insp-wrap" style="display:none;"><label>Voltaje por Celda</label><div class="grid3" style="margin-bottom:12px;">${celdasHTML}</div>
+        <div class="field"><label>Voltaje General del Banco (V)</label><input type="number" step="0.01" id="banco-v-general" value="${(existing&&existing.inspeccionBaterias&&existing.inspeccionBaterias.voltajeGeneral)??''}"></div>
+        <div style="display:flex;flex-direction:column;gap:9px;background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:10px 12px;">${checklistInspBatHTML}</div></div>
+      <div id="m-medic-elec-wrap" style="display:${initialEspecialidad==='ELECTRICIDAD'?'block':'none'};">
+        <div class="mini-title">Mediciones Eléctricas (si aplica)</div>
+        <div class="field"><label>Amperaje por fase (A)</label><div class="grid3">
+          <div class="field" style="margin-bottom:0;"><label>L1</label><input type="number" step="0.01" id="med-ampL1" value="${med.ampL1??''}"></div>
+          <div class="field" style="margin-bottom:0;"><label>L2</label><input type="number" step="0.01" id="med-ampL2" value="${med.ampL2??''}"></div>
+          <div class="field" style="margin-bottom:0;"><label>L3</label><input type="number" step="0.01" id="med-ampL3" value="${med.ampL3??''}"></div>
+        </div></div>
+        <div class="field"><label>Voltaje entre fases (V)</label><div class="grid3">
+          <div class="field" style="margin-bottom:0;"><label>L1-L2</label><input type="number" step="0.01" id="med-voltL1L2" value="${med.voltL1L2??''}"></div>
+          <div class="field" style="margin-bottom:0;"><label>L1-L3</label><input type="number" step="0.01" id="med-voltL1L3" value="${med.voltL1L3??''}"></div>
+          <div class="field" style="margin-bottom:0;"><label>L2-L3</label><input type="number" step="0.01" id="med-voltL2L3" value="${med.voltL2L3??''}"></div>
+        </div></div>
+      </div>
+      <div class="field"><label>Resultado</label><input type="text" id="m-resultado" value="${base.resultado||''}" placeholder="Ej: 480 MΩ — Conforme"></div>
+      <div class="field"><label>Usuario responsable</label><input type="text" id="m-tecnico" value="${base.tecnico||userName()}"></div>
+      <div class="field"><label>Observación</label><textarea id="m-obs" rows="3">${base.observacion||''}</textarea></div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" id="modal-cancel">Cancelar</button><button class="btn primary" id="modal-save">${isEdit?"Guardar cambios":"Guardar registro"}</button></div>`;
+  function refreshVisibility(tipo){
+    document.getElementById("m-checklist-wrap").style.display=tipo==="Mantenimiento Preventivo"?"block":"none";
+    document.getElementById("m-no-planificado-wrap").style.display=tipo==="Mantenimiento no Planificado"?"block":"none";
+    document.getElementById("m-autonomia-wrap").style.display=tipo==="Prueba de autonomía de batería"?"block":"none";
+    document.getElementById("m-bateria-insp-wrap").style.display=tipo==="Inspección de Banco de Baterías"?"block":"none";
+  }
+  refreshVisibility(initialTipo);
+  document.getElementById("m-tipo").addEventListener("change",e=>refreshVisibility(e.target.value));
+  function refreshChecklistUI(){
+    const comp=document.getElementById("m-comp").value;
+    const especialidad=document.getElementById("m-especialidad").value;
+    const elementoId=document.getElementById("m-elemento").value;
+    document.getElementById("m-checklist-items").innerHTML=renderChecklistItems(checklistParaElemento(comp,elementoId,especialidad),[]);
+  }
+  document.getElementById("m-comp").addEventListener("change",e=>{
+    const esp=document.getElementById("m-especialidad").value;
+    document.getElementById("m-elemento").innerHTML=elementoOptions(e.target.value,esp);
+    refreshChecklistUI();
+  });
+  function toggleMedicElec(especialidad){
+    const show=especialidad==="ELECTRICIDAD";
+    const w=document.getElementById("m-medic-elec-wrap");
+    if (w) w.style.display=show?"block":"none";
+  }
+  document.getElementById("m-especialidad").addEventListener("change",e=>{
+    const comp=document.getElementById("m-comp").value;
+    document.getElementById("m-elemento").innerHTML=elementoOptions(comp,e.target.value);
+    refreshChecklistUI(); toggleMedicElec(e.target.value);
+  });
+  document.getElementById("m-elemento").addEventListener("change",refreshChecklistUI);
+  document.getElementById("modal-close").addEventListener("click",closeModal);
+  document.getElementById("modal-cancel").addEventListener("click",closeModal);
+  document.getElementById("modal-save").addEventListener("click",()=>{
+    if (!requireOperador()) return;
+    const comp=document.getElementById("m-comp").value;
+    const especialidad=document.getElementById("m-especialidad").value;
+    const elementoId=document.getElementById("m-elemento").value;
+    let elLabel=elementoId;
+    if ((CFG().sistemasAire||[]).includes(comp)) elLabel="Compresor de Aire";
+    else if (especialidad==="ELECTRICIDAD"){ const elInfo=getElementosDeCompresor(comp).find(e=>e.id===elementoId); elLabel=elInfo?elInfo.label:elementoId; }
+    else { const opt=document.querySelector('#m-elemento option[value="'+elementoId+'"]'); elLabel=opt?opt.textContent:elementoId; }
+    const fecha=document.getElementById("m-fecha").value;
+    const tipoPrueba=document.getElementById("m-tipo").value;
+    let resultado=document.getElementById("m-resultado").value;
+    const tecnico=document.getElementById("m-tecnico").value||userName();
+    const observacion=document.getElementById("m-obs").value;
+    const numOrNull=v=>v===""||v===undefined||v===null?null:parseFloat(v);
+    const medicion={
+      ampL1:numOrNull(document.getElementById("med-ampL1").value), ampL2:numOrNull(document.getElementById("med-ampL2").value), ampL3:numOrNull(document.getElementById("med-ampL3").value),
+      voltL1L2:numOrNull(document.getElementById("med-voltL1L2").value), voltL1L3:numOrNull(document.getElementById("med-voltL1L3").value), voltL2L3:numOrNull(document.getElementById("med-voltL2L3").value)
+    };
+    let checklist=null,autonomia=null,inspeccionBaterias=null,noPlanificado=null;
+    if (tipoPrueba==="Mantenimiento Preventivo"){
+      const marcadas=Array.from(document.querySelectorAll(".chk-preventivo:checked")).map(cb=>cb.value);
+      const tareasUsadas=checklistParaElemento(comp,elementoId,especialidad);
+      checklist={tareas:tareasUsadas,completadas:marcadas};
+      if (!resultado.trim()) resultado=`${marcadas.length}/${tareasUsadas.length} tareas completadas`;
+    }
+    if (tipoPrueba==="Mantenimiento no Planificado"){
+      noPlanificado={solicitante:document.getElementById("np-solicitante").value.trim(),falla:document.getElementById("np-falla").value.trim(),fechaReporte:document.getElementById("np-fecha-reporte").value.trim(),metodoReporte:document.getElementById("np-metodo").value};
+      if (!resultado.trim()) resultado=noPlanificado.falla?`Falla reportada: ${noPlanificado.falla}`:"Pendiente de diagnóstico";
+    }
+    if (tipoPrueba==="Prueba de autonomía de batería"){
+      const lecturas=[];
+      for(let i=1;i<=12;i++){
+        const t=document.querySelector(`.autonomia-t[data-i="${i}"]`).value;
+        const v=document.querySelector(`.autonomia-v[data-i="${i}"]`).value;
+        const a=document.querySelector(`.autonomia-a[data-i="${i}"]`).value;
+        lecturas.push({tiempoMin:t===""?null:parseFloat(t),voltaje:v===""?null:parseFloat(v),corriente:a===""?null:parseFloat(a)});
+      }
+      autonomia=lecturas;
+      if (!resultado.trim()) resultado=`${lecturas.filter(l=>l.voltaje!==null||l.corriente!==null).length}/12 lecturas registradas`;
+    }
+    if (tipoPrueba==="Inspección de Banco de Baterías"){
+      const celdas=[];
+      for(let i=1;i<=10;i++){ const v=document.querySelector(`.celda-v[data-c="${i}"]`).value; celdas.push(v===""?null:parseFloat(v)); }
+      const voltajeGeneral=document.getElementById("banco-v-general").value;
+      const marcadas=Array.from(document.querySelectorAll(".chk-insp-bateria:checked")).map(cb=>cb.value);
+      inspeccionBaterias={celdas,voltajeGeneral:voltajeGeneral===""?null:parseFloat(voltajeGeneral),tareas:CHECKLIST_INSPECCION_BATERIAS.slice(),completadas:marcadas};
+      if (!resultado.trim()) resultado=`Voltaje general: ${inspeccionBaterias.voltajeGeneral??"—"} V`;
+    }
+    let elementoTipo=null;
+    if (!(CFG().sistemasAire||[]).includes(comp)){ const elInfo=findElementoById(comp,elementoId); if(elInfo) elementoTipo=elInfo.tipo; }
+    const record={id:isEdit?existing.id:uid(),fecha,comp,equipo:elLabel,elementoId,elementoTipo,especialidad,tipoPrueba,resultado,tecnico,usuarioUID:userUID(),observacion,checklist,autonomia,inspeccionBaterias,noPlanificado,medicion};
+    if (isEdit){
+      const idx=DB.mantenimiento.findIndex(r=>r.id===existing.id);
+      if (idx>=0) DB.mantenimiento[idx]=record; else DB.mantenimiento.unshift(record);
+    } else DB.mantenimiento.unshift(record);
+    const incluyeMegado=tipoPrueba.startsWith("Megado")||(checklist&&checklist.completadas.some(t=>t.toUpperCase().includes("AISLAMIENTO")));
+    if (!(CFG().sistemasAire||[]).includes(comp) && elementoId && incluyeMegado){
+      const elInfo=findElementoById(comp,elementoId);
+      if (elInfo&&elInfo.obj){ elInfo.obj.ultimoMegado=fecha; elInfo.obj.actualizado=nowISO(); }
+    }
+    persist(); closeModal(); renderMantenimiento();
+    showToast(isEdit?"✓ Registro actualizado":"✓ Registro guardado");
+  });
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+/* ================== REPORTES ================== */
+const REPORTES=[
+  {id:"resumen",label:"Resumen Ejecutivo (Gráficas)"},
+  {id:"semanal",label:"Informe Semanal"},
+  {id:"mensual",label:"Informe Mensual"},
+  {id:"fuera_servicio",label:"Equipos Fuera de Servicio"},
+  {id:"por_intervenir",label:"Equipos por Intervenir"},
+  {id:"pendiente_megado",label:"Pendientes de Megado"},
+  {id:"sin_motor",label:"Sistemas sin Motor Instalado"},
+  {id:"sin_bateria",label:"Sin Banco de Baterías"},
+  {id:"disponibilidad",label:"Disponibilidad por Equipo"},
+  {id:"electrico",label:"Reporte Eléctrico"},
+  {id:"indicadores_gerencia",label:"Indicadores Gerenciales"}
+];
+function simpleTable(headers,rows,emptyMsg){
+  if (!rows.length) return `<div class="empty-state"><div class="ic">▤</div>${emptyMsg}</div>`;
+  return `<div class="table-wrap"><table class="data-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>{
+    if (Array.isArray(r)) return `<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`;
+    const attrs=(r.comp?`data-dcomp="${r.comp}" `:'')+(r.id?`data-did="${r.id}" `:'')+(r.tipo?`data-dtipo="${r.tipo}" `:'');
+    const cls=(r.comp||r.id)?'clickable-row':'';
+    return `<tr class="${cls}" ${attrs}>${r.cols.map(c=>`<td>${c}</td>`).join("")}</tr>`;
+  }).join("")}</tbody></table></div>`;
+}
+function renderReportes(){
+  const el=document.getElementById("content");
+  const nav=REPORTES.map(r=>`<button class="chip ${UI.reportView===r.id?'active':''}" data-rv="${r.id}">${r.label}</button>`).join("");
+  const sel=getSelectedCompresores();
+  const selNote=sel.length===CFG().sistemas.length?`Incluye todos los ${CFG().terminoPlural.toLowerCase()} del área.`:`Filtrado por selección del Tablero: <b style="color:var(--text)">${sel.join(", ")}</b> (${sel.length}/${CFG().sistemas.length}).`;
+  el.innerHTML=`
+    <div class="section-title"><div><h2>Reportes y Resumen Ejecutivo</h2><div class="sub">Generado ${fmtDateTime(nowISO())} · Área de ${CFG().label}, COSJ</div></div>
+    <button class="btn primary" onclick="window.print()">🖶 Imprimir / PDF</button></div>
+    <div class="report-nav">${nav}</div>
+    <div class="inline-info" style="margin-bottom:14px;">📌 ${selNote} Cambia la selección desde el Tablero General para actualizar estos reportes.</div>
+    <div id="report-body"></div>`;
+  el.querySelectorAll("[data-rv]").forEach(b=>b.addEventListener("click",()=>{ UI.reportView=b.dataset.rv; renderReportes(); }));
+  const body=document.getElementById("report-body");
+  const renderers={
+    resumen:()=>renderReporteResumen(sel), semanal:()=>renderReportePeriodo(7,"Informe Semanal",sel), mensual:()=>renderReportePeriodo(30,"Informe Mensual",sel),
+    fuera_servicio:()=>renderReporteFueraServicio(sel), por_intervenir:()=>renderReportePorIntervenir(sel), pendiente_megado:()=>renderReportePendienteMegado(sel),
+    sin_motor:()=>renderReporteSinMotor(sel), sin_bateria:()=>renderReporteSinBateria(sel), disponibilidad:()=>renderReporteDisponibilidad(sel),
+    electrico:()=>renderReporteElectrico(sel), indicadores_gerencia:()=>renderReporteIndicadoresGerencia(sel)
+  };
+  body.innerHTML=(renderers[UI.reportView]||renderers.resumen)();
+  body.querySelectorAll("tr[data-dcomp]").forEach(tr=>tr.addEventListener("click",()=>{
+    const c=tr.dataset.dcomp, i=tr.dataset.did, t=tr.dataset.dtipo;
+    if (i&&t) openDrawer(c,t,i); else if (c) openCompresorSummary(c);
+  }));
+  if (UI.reportView==="resumen") setTimeout(()=>initCharts(sel),50);
+  if (UI.reportView==="electrico"){ bindElectricoEvents(sel); setTimeout(()=>initElectricoCharts(),50); }
+}
+function initCharts(compList){
+  compList=compList||getSelectedCompresores();
+  const k=computeMetrics(compList);
+  const ctxEstados=document.getElementById('chartEstados');
+  if (ctxEstados){
+    Chart.getChart(ctxEstados)?.destroy();
+    const labels=[],data=[],bgColors=[];
+    Object.entries(ESTADOS).forEach(([key,v])=>{ if (k.porEstado[key]>0){ labels.push(`${v.label} (${k.porEstado[key]})`); data.push(k.porEstado[key]); bgColors.push(v.hex); } });
+    new Chart(ctxEstados,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:bgColors,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#8CA0C2',font:{size:10}}}}}});
+  }
+  const ctxDisp=document.getElementById('chartDisponibilidad');
+  if (ctxDisp){
+    Chart.getChart(ctxDisp)?.destroy();
+    const labels=[],data=[],bgColors=[];
+    compList.forEach(comp=>{ if (!DB.compresores[comp]) return; const {pct}=compKPI(comp); labels.push(comp); data.push(pct); bgColors.push(pct>=90?"#29C46A":pct>=60?"#FF8A2B":"#F14848"); });
+    (CFG().sistemasAire||[]).forEach(comp=>{ if (compList.length>0 && !compList.includes(comp)) return; const estado=(DB.compresoresAire[comp]||{}).estado||"ACTIVO"; const pct=estado==="ACTIVO"?100:estado==="STAND_BY"?50:0; labels.push(comp); data.push(pct); bgColors.push(pct>=90?"#29C46A":pct>=50?"#F2A93C":"#F14848"); });
+    if (!labels.length){ ctxDisp.parentElement.innerHTML='<div class="dim" style="padding:20px;text-align:center;">Seleccione al menos un sistema para mostrar el gráfico.</div>'; return; }
+    new Chart(ctxDisp,{type:'bar',data:{labels,datasets:[{label:'Disponibilidad (%)',data,backgroundColor:bgColors,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:100,ticks:{color:'#8CA0C2',stepSize:10},grid:{color:'#1B2740'}},x:{ticks:{color:'#8CA0C2',maxRotation:45},grid:{display:false}}},plugins:{legend:{display:false}}}});
+  }
+}
+function renderReporteResumen(compList){
+  compList=compList||getSelectedCompresores();
+  const k=computeMetrics(compList);
+  let airActivos=0,airFuera=0,airStandBy=0; const airObserv=[];
+  (CFG().sistemasAire||[]).forEach(comp=>{ const data=DB.compresoresAire[comp]||{estado:"ACTIVO",observacion:""}; const est=data.estado||"ACTIVO"; if(est==="ACTIVO") airActivos++; else if(est==="FUERA_DE_SERVICIO") airFuera++; else if(est==="STAND_BY") airStandBy++; airObserv.push({comp,estado:est,observacion:data.observacion||"Sin observaciones"}); });
+  const airStatusRows=airObserv.map(a=>{ const color=(ESTADOS_AIR[a.estado]||ESTADOS_AIR.ACTIVO).hex; const label=(ESTADOS_AIR[a.estado]||ESTADOS_AIR.ACTIVO).label; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:1px solid var(--border-soft);"><span style="font-weight:600;font-family:var(--font-mono);">${a.comp}</span><span><span class="tag" style="--tag-c:${color}">${label}</span></span><span style="font-size:10px;color:var(--text-dim);">${a.observacion}</span></div>`; }).join("");
+  return `
+    <div class="report-grid">
+      <div class="report-card"><h4>Distribución de Estados (${k.total} equipos)</h4><div style="height:220px;"><canvas id="chartEstados"></canvas></div>
+        <div style="margin-top:10px;border-top:1px dashed var(--border-soft);padding-top:8px;">${Object.entries(ESTADOS).filter(([key])=>k.porEstado[key]>0).map(([key,v])=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:2px 0;"><span style="display:flex;align-items:center;gap:6px;color:var(--text-dim);"><span style="width:8px;height:8px;border-radius:50%;background:${v.hex};display:inline-block;"></span>${v.label}</span><span class="mono" style="color:var(--text);font-weight:700;">${k.porEstado[key]}</span></div>`).join("")}</div>
+      </div>
+      <div class="report-card" style="grid-column:span 2;"><h4>Disponibilidad por Equipo (%)</h4><div style="height:280px;"><canvas id="chartDisponibilidad"></canvas></div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text-faint);">Selecciona los sistemas desde el Tablero General para filtrar.</div>
+      </div>
+    </div>
+    ${CFG().usaAire?`<div class="report-card" style="margin-bottom:16px;"><h4>🔹 Estado de Compresores de Aire</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div style="background:var(--bg-grid);padding:8px 12px;border-radius:4px;border-left:3px solid #29C46A;"><div style="font-size:10px;color:var(--text-dim);">Activos</div><div style="font-size:18px;font-weight:700;color:#29C46A;">${airActivos}</div></div>
+        <div style="background:var(--bg-grid);padding:8px 12px;border-radius:4px;border-left:3px solid #F2A93C;"><div style="font-size:10px;color:var(--text-dim);">Respaldo</div><div style="font-size:18px;font-weight:700;color:#F2A93C;">${airStandBy}</div></div>
+        <div style="background:var(--bg-grid);padding:8px 12px;border-radius:4px;border-left:3px solid #F14848;"><div style="font-size:10px;color:var(--text-dim);">Fuera de Servicio</div><div style="font-size:18px;font-weight:700;color:#F14848;">${airFuera}</div></div>
+      </div>
+      <div style="border:1px solid var(--border-soft);border-radius:4px;overflow:hidden;">${airStatusRows}</div></div>`:""}
+    <div class="report-grid"><div class="report-card"><h4>Resumen General</h4><p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:0;">
+      De <b style="color:var(--text)">${k.total}</b> equipos monitoreados, <b style="color:var(--c-operativo)">${k.operativos}</b> operativos (<b>${k.disponibilidad}%</b> disponibilidad), <b style="color:var(--c-sin-motor)">${k.alarmas}</b> con novedad.
+      ${CFG().usaAire?`<br>Compresores de Aire: <b style="color:#29C46A">${airActivos}</b> activos, <b style="color:#F2A93C">${airStandBy}</b> en Respaldo, <b style="color:#F14848">${airFuera}</b> fuera de servicio.`:""}
+    </p></div></div>`;
+}
+function renderReportePeriodo(days,titulo,compList){
+  compList=compList||getSelectedCompresores();
+  const cutoff=Date.now()-days*86400000;
+  const cambios=DB.historial.filter(r=>compList.includes(r.comp) && new Date(r.ts).getTime()>=cutoff);
+  const mants=DB.mantenimiento.filter(r=>compList.includes(r.comp) && new Date(r.fecha).getTime()>=cutoff);
+  const k=computeMetrics(compList);
+  return `
+    <div class="report-grid"><div class="report-card"><h4>${titulo} — Ventana de ${days} días</h4>
+      <div class="bar-row"><div class="lbl">Disponibilidad</div><div class="bar-track"><div class="bar-fill" style="width:${k.disponibilidad}%;background:#29C46A"></div></div><div class="val">${k.disponibilidad}%</div></div>
+      <div class="bar-row"><div class="lbl">Cambios de estado</div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,cambios.length*4)}%;background:#3E8CFF"></div></div><div class="val">${cambios.length}</div></div>
+      <div class="bar-row"><div class="lbl">Mantenimientos</div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,mants.length*8)}%;background:#F2A93C"></div></div><div class="val">${mants.length}</div></div>
+    </div></div>
+    <div class="section-title"><h2 style="font-size:12.5px;">Cambios de estado en el período</h2></div>
+    ${simpleTable(["Fecha/Hora",CFG().terminoSingular,"Elemento","De","A","Usuario"], cambios.map(r=>({comp:r.comp,cols:[fmtDateTime(r.ts),r.comp,r.elemento,estadoTag(r.estadoAnterior),estadoTag(r.estadoNuevo),r.tecnico]})), "No hubo cambios de estado en este período.")}
+    <div style="height:16px;"></div>
+    <div class="section-title"><h2 style="font-size:12.5px;">Mantenimientos en el período</h2></div>
+    ${simpleTable(["Fecha",CFG().terminoSingular,"Equipo","Especialidad","Tipo","Resultado","Usuario"], mants.map(r=>({comp:r.comp,id:r.elementoId,tipo:r.elementoTipo,cols:[r.fecha,r.comp,r.equipo,r.especialidad||"ELECTRICIDAD",r.tipoPrueba,r.resultado||"—",r.tecnico]})), "No hubo mantenimientos en este período.")}`;
+}
+function renderReporteFueraServicio(compList){
+  compList=compList||getSelectedCompresores();
+  const compsFuera=compList.filter(c=>DB.compresores[c]&&DB.compresores[c].compresorEstado==="FUERA_DE_SERVICIO");
+  const itemsSinMotor=allItems(compList).filter(it=>it.estado==="SIN_MOTOR");
+  const airFuera=(CFG().sistemasAire||[]).filter(c=>(DB.compresoresAire[c]||{}).estado==="FUERA_DE_SERVICIO");
+  return `
+    <div class="section-title"><h2 style="font-size:12.5px;">${CFG().terminoPlural} marcados Fuera de Servicio</h2></div>
+    ${simpleTable([CFG().terminoSingular,"Observación general"], compsFuera.map(c=>({comp:c,cols:[c,(DB.compresores[c]&&DB.compresores[c].compresorObservacion)||"—"]})), `Ningún ${CFG().terminoSingular.toLowerCase()} está marcado como Fuera de Servicio.`)}
+    ${CFG().usaAire?`<div style="height:16px;"></div><div class="section-title"><h2 style="font-size:12.5px;">Compresores de Aire Fuera de Servicio</h2></div>${simpleTable(["Compresor","Observación"], airFuera.map(c=>({comp:c,cols:[c,(DB.compresoresAire[c]||{}).observacion||"—"]})), "Ningún compresor de aire está fuera de servicio.")}`:""}
+    <div style="height:16px;"></div>
+    <div class="section-title"><h2 style="font-size:12.5px;">Equipos individuales sin motor (SIN_MOTOR)</h2></div>
+    ${simpleTable([CFG().terminoSingular,"Elemento","Observación","Últ. actualización"], itemsSinMotor.map(it=>({comp:it.comp,id:it.id,tipo:it.tipo,cols:[it.comp,it.etiqueta,it.observacion||"—",fmtDateTime(it.actualizado)]})), "No hay equipos individuales sin motor.")}`;
+}
+function renderReportePorIntervenir(compList){
+  compList=compList||getSelectedCompresores();
+  const items=allItems(compList).filter(it=>["FALLA_ELECTRICA","FALLA_MECANICA","VER_OBSERVACION"].includes(it.estado));
+  return simpleTable([CFG().terminoSingular,"Elemento","Estado","Observación","Usuario","Últ. actualización"],
+    items.map(it=>({comp:it.comp,id:it.id,tipo:it.tipo,cols:[it.comp,it.etiqueta,estadoTag(it.estado),it.observacion||"—",it.tecnico||"—",fmtDateTime(it.actualizado)]})),
+    "No hay equipos pendientes de intervención en la selección.");
+}
+function renderReportePendienteMegado(compList){
+  compList=compList||getSelectedCompresores();
+  const items=allItems(compList).filter(it=>!it.ultimoMegado||daysAgo(it.ultimoMegado)>365);
+  const rows=items.map(it=>{
+    const situacion=!it.ultimoMegado?`<span class="pill-status" style="background:rgba(255,138,43,.15);color:#FF8A2B;">Sin registro</span>`:`<span class="pill-status" style="background:rgba(241,72,72,.15);color:#F14848;">Vencido (&gt;12 meses)</span>`;
+    return {comp:it.comp,id:it.id,tipo:it.tipo,cols:[it.comp,it.etiqueta,situacion,it.ultimoMegado?fmtDate(it.ultimoMegado):"—"]};
+  });
+  return simpleTable([CFG().terminoSingular,"Elemento","Situación","Último megado"], rows, "Todos los equipos cuentan con megado vigente.");
+}
+function renderReporteSinMotor(compList){
+  compList=compList||getSelectedCompresores();
+  const items=allItems(compList).filter(it=>it.estado==="SIN_MOTOR");
+  return simpleTable([CFG().terminoSingular,"Elemento","Observación","Últ. actualización"],
+    items.map(it=>({comp:it.comp,id:it.id,tipo:it.tipo,cols:[it.comp,it.etiqueta,it.observacion||"—",fmtDateTime(it.actualizado)]})),
+    "No hay sistemas sin motor instalado en la selección.");
+}
+function renderReporteSinBateria(compList){
+  compList=compList||getSelectedCompresores();
+  const comps=compList.filter(bancoBateriasFaltante);
+  return simpleTable([CFG().terminoSingular,"Estado del Banco de Baterías 125 VDC","Observación"],
+    comps.map(c=>{ const item=getBancoBateriasItem(c); return {comp:c,id:item?item.id:null,tipo:"aux",cols:[c,item?estadoTag(item.estado):`<span class="pill-status" style="background:rgba(241,72,72,.15);color:#F14848;">No registrado</span>`,(item&&item.observacion)||"—"]}; }),
+    "Todos los sistemas cuentan con Banco de Baterías 125 VDC verificado.");
+}
+function renderReporteDisponibilidad(compList){
+  compList=compList||getSelectedCompresores();
+  const rows=compList.map(comp=>{
+    if (!DB.compresores[comp]) return null;
+    const {pct,alarm}=compKPI(comp);
+    const cEstado=DB.compresores[comp].compresorEstado;
+    const items=[...DB.compresores[comp].motores,...DB.compresores[comp].auxiliares];
+    const operativos=items.filter(i=>isOperational(i.estado)).length;
+    return {comp,cols:[comp,cEstado==="FUERA_DE_SERVICIO"?estadoTag("FUERA_DE_SERVICIO"):estadoTag("OPERATIVO"),`${operativos}/${items.length}`,`${pct}%`,alarm?"⚠ Sí":"—"]};
+  }).filter(Boolean);
+  (CFG().sistemasAire||[]).forEach(comp=>{
+    const estado=(DB.compresoresAire[comp]||{}).estado||"ACTIVO";
+    const pct=estado==="ACTIVO"?100:estado==="STAND_BY"?50:0;
+    rows.push({comp,cols:[comp,estadoTag(estado),"1/1",`${pct}%`,"—"]});
+  });
+  const barCards=rows.map(r=>{ const pct=parseInt(r.cols[3]); const color=pct>=90?"#29C46A":pct>=50?"#F2A93C":"#F14848"; return `<div class="bar-row"><div class="lbl mono" style="cursor:pointer;" onclick="openCompresorSummary('${r.comp}')">${r.comp}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div><div class="val">${pct}%</div></div>`; }).join("");
+  return `<div class="report-card" style="margin-bottom:16px;"><h4>Disponibilidad por equipo</h4>${barCards}</div>
+    ${simpleTable([CFG().terminoSingular,"Estado general","Operativos/Total","Disponibilidad","Alarma activa"], rows, "Sin datos.")}`;
+}
+function esItemDC(nombre){ return /back\s*up/i.test(nombre)||/125\s*vdc/i.test(nombre); }
+const NOMINAL_AC=460, NOMINAL_DC=125, PF_ASUMIDO=0.85, EFICIENCIA_ASUMIDA=0.90;
+function getItemsElectricos(compList){
+  const out=[];
+  compList.forEach(comp=>{
+    if (!DB.compresores[comp]) return;
+    const c=DB.compresores[comp];
+    c.motores.forEach(m=>out.push({comp,id:m.id,nombre:m.nombreReal||`Motor V${m.numero}`,hp:m.hp,tag:m.tag}));
+    c.auxiliares.forEach(a=>out.push({comp,id:a.id,nombre:a.nombre,hp:a.hp,tag:a.tag}));
+  });
+  return out;
+}
+function calcularAnalisisElectrico(item){
+  const lectura=getLastElectricalReading(item.id);
+  const dc=esItemDC(item.nombre);
+  const result={item,lectura,dc,nominal:dc?NOMINAL_DC:NOMINAL_AC};
+  if (!lectura||!lectura.medicion) return result;
+  const med=lectura.medicion;
+  if (dc){
+    result.corriente=med.ampL1; result.voltaje=med.voltL1L2;
+    if (result.voltaje!==null && result.voltaje!==undefined){
+      result.voltajePct=(result.voltaje/NOMINAL_DC)*100;
+      result.nivelTension=result.voltajePct>110?"Sobrevoltaje":result.voltajePct<90?"Subvoltaje":"Normal";
+    }
+    return result;
+  }
+  const amps=[med.ampL1,med.ampL2,med.ampL3].filter(v=>v!==null&&v!==undefined);
+  const volts=[med.voltL1L2,med.voltL1L3,med.voltL2L3].filter(v=>v!==null&&v!==undefined);
+  if (amps.length>0){
+    const ampAvg=amps.reduce((a,b)=>a+b,0)/amps.length;
+    result.ampAvg=ampAvg;
+    if (amps.length===3 && ampAvg>0){ const maxDev=Math.max(...amps.map(a=>Math.abs(a-ampAvg))); result.desbalanceCorriente=(maxDev/ampAvg)*100; result.nivelDesbalance=result.desbalanceCorriente>15?"Crítico":result.desbalanceCorriente>10?"Atención":"Normal"; }
+  }
+  if (volts.length>0){
+    const voltAvg=volts.reduce((a,b)=>a+b,0)/volts.length;
+    result.voltAvg=voltAvg;
+    result.voltajePct=(voltAvg/NOMINAL_AC)*100;
+    result.nivelTension=result.voltajePct>110?"Sobrevoltaje":result.voltajePct<90?"Subvoltaje":"Normal";
+  }
+  if (result.ampAvg!==undefined && result.voltAvg!==undefined){
+    result.kvaEstimado=(Math.sqrt(3)*result.voltAvg*result.ampAvg)/1000;
+    if (item.hp && parseFloat(item.hp)>0){
+      const hp=parseFloat(item.hp);
+      const kvaNominal=(hp*0.746)/PF_ASUMIDO/EFICIENCIA_ASUMIDA;
+      result.kvaNominal=kvaNominal; result.factorCarga=(result.kvaEstimado/kvaNominal)*100;
+    }
+  }
+  return result;
+}
+function bindElectricoEvents(sel){
+  const box=document.getElementById("electrico-picker"); if(!box) return;
+  box.querySelectorAll("[data-eitem]").forEach(cb=>cb.addEventListener("change",()=>{
+    const id=cb.dataset.eitem;
+    if (cb.checked){ if (!UI.reporteElectricoSel.includes(id)) UI.reporteElectricoSel.push(id); }
+    else UI.reporteElectricoSel=UI.reporteElectricoSel.filter(x=>x!==id);
+    renderReportes();
+  }));
+  const btnAll=document.getElementById("e-select-all"); if(btnAll) btnAll.addEventListener("click",()=>{ UI.reporteElectricoSel=getItemsElectricos(sel).map(i=>i.id); renderReportes(); });
+  const btnNone=document.getElementById("e-select-none"); if(btnNone) btnNone.addEventListener("click",()=>{ UI.reporteElectricoSel=[]; renderReportes(); });
+}
+function renderReporteElectrico(compList){
+  compList=compList||getSelectedCompresores();
+  const itemsDisponibles=getItemsElectricos(compList);
+  const pickerHTML=`<div class="report-card" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><h4 style="margin:0;">Seleccionar Motores / Sistemas a Analizar</h4>
+      <div style="display:flex;gap:6px;"><button class="btn small" id="e-select-all">Seleccionar todos</button><button class="btn small" id="e-select-none">Limpiar</button></div></div>
+    <div id="electrico-picker" style="max-height:220px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:4px;padding:10px;">
+      ${itemsDisponibles.length===0?'<div class="dim" style="font-size:11px;grid-column:1/-1;">No hay sistemas seleccionados. Ajuste la selección.</div>':itemsDisponibles.map(i=>`<label class="check-row" style="margin-bottom:0;font-size:11px;"><input type="checkbox" data-eitem="${i.id}" ${UI.reporteElectricoSel.includes(i.id)?'checked':''}><span class="mono" style="color:var(--text-dim);">${i.comp}</span> · ${i.nombre}</label>`).join("")}
+    </div></div>`;
+  const seleccionados=itemsDisponibles.filter(i=>UI.reporteElectricoSel.includes(i.id));
+  if (!seleccionados.length) return pickerHTML+`<div class="empty-state"><div class="ic">⚡</div>Seleccione uno o más motores/sistemas para ver su comportamiento eléctrico.</div>`;
+  const analisis=seleccionados.map(calcularAnalisisElectrico);
+  const conDatos=analisis.filter(a=>a.lectura); const sinDatos=analisis.filter(a=>!a.lectura);
+  const nivelColor=n=>n==="Normal"?"#29C46A":n==="Atención"?"#FF8A2B":(n==="Sobrevoltaje"||n==="Subvoltaje"||n==="Crítico")?"#F14848":"#47526B";
+  const fmt=(v,dec=1)=>(v===undefined||v===null||isNaN(v))?"—":v.toFixed(dec);
+  const tablaRows=analisis.map(a=>{
+    const est=a.dc?"125 VDC":"460 V AC (3φ)";
+    if (!a.lectura) return {comp:a.item.comp,id:a.item.id,tipo:"motor",cols:[a.item.comp,a.item.nombre,est,"—","—","—","—","—","—","Sin mediciones","—","—"]};
+    const m=a.lectura.medicion;
+    if (a.dc) return {comp:a.item.comp,id:a.item.id,tipo:"motor",cols:[a.item.comp,a.item.nombre,est,fmt(a.corriente)+" A","—","—",fmt(a.voltaje)+" V","—","—",a.nivelTension?`<span style="color:${nivelColor(a.nivelTension)};font-weight:700;">${a.nivelTension} (${fmt(a.voltajePct,0)}%)</span>`:"—","N/A (DC)",`${fmtDate(a.lectura.fecha)}<br><span class="dim">${a.lectura.tecnico}</span>`]};
+    return {comp:a.item.comp,id:a.item.id,tipo:"motor",cols:[a.item.comp,a.item.nombre,est,fmt(m.ampL1)+" A",fmt(m.ampL2)+" A",fmt(m.ampL3)+" A",fmt(m.voltL1L2)+" V",fmt(m.voltL1L3)+" V",fmt(m.voltL2L3)+" V",a.nivelTension?`<span style="color:${nivelColor(a.nivelTension)};font-weight:700;">${a.nivelTension} (${fmt(a.voltajePct,0)}%)</span>`:"—",a.nivelDesbalance?`<span style="color:${nivelColor(a.nivelDesbalance)};font-weight:700;">${a.nivelDesbalance} (${fmt(a.desbalanceCorriente,1)}%)</span>`:"—",`${fmtDate(a.lectura.fecha)}<br><span class="dim">${a.lectura.tecnico}</span>`]};
+  });
+  const potenciaRows=conDatos.filter(a=>!a.dc && a.kvaEstimado!==undefined).map(a=>({comp:a.item.comp,id:a.item.id,tipo:"motor",cols:[a.item.comp,a.item.nombre,a.item.hp?`${a.item.hp} HP`:"No registrado en placa",fmt(a.kvaEstimado,2)+" kVA (est.)",a.kvaNominal?fmt(a.kvaNominal,2)+" kVA (nominal est.)":"—",a.factorCarga!==undefined?`<b style="color:${a.factorCarga>100?'#F14848':a.factorCarga<30?'#FF8A2B':'#29C46A'}">${fmt(a.factorCarga,0)}%</b>`:"Requiere HP en placa"]}));
+  return `${pickerHTML}
+    <div class="inline-info" style="margin-bottom:16px;">⚡ Se asume 460 V AC trifásico, salvo Back Up / Banco de Baterías (125 VDC). Factor de carga estimado.${sinDatos.length>0?`<br>⚠ ${sinDatos.length} equipo(s) sin mediciones registradas.`:""}</div>
+    <div class="report-grid">
+      <div class="report-card" style="grid-column:span 2;"><h4>Análisis de Corriente (Amperaje) por Fase</h4><div style="height:260px;"><canvas id="chartAmperaje"></canvas></div></div>
+      <div class="report-card" style="grid-column:span 2;"><h4>Análisis de Voltaje (Tensión) entre Fases</h4><div style="height:260px;"><canvas id="chartVoltaje"></canvas></div></div>
+    </div>
+    <div class="section-title"><h2 style="font-size:12.5px;">Mediciones y Niveles</h2></div>
+    ${simpleTable([CFG().terminoSingular,"Equipo","Tipo","Amp L1","Amp L2","Amp L3","Volt L1-L2","Volt L1-L3","Volt L2-L3","Nivel de Tensión","Desbalance","Última Medición"], tablaRows, "Sin datos.")}
+    <div style="height:16px;"></div>
+    <div class="section-title"><h2 style="font-size:12.5px;">Relación Potencia y Factor de Carga (estimados)</h2></div>
+    ${simpleTable([CFG().terminoSingular,"Equipo","Potencia Nominal","Potencia Aparente Medida","Potencia Aparente Nominal (est.)","Factor de Carga Estimado"], potenciaRows, "No hay motores AC con mediciones completas.")}`;
+}
+function initElectricoCharts(){
+  const box=document.getElementById("electrico-picker"); if(!box) return;
+  const seleccionados=UI.reporteElectricoSel; if(!seleccionados.length) return;
+  const analisis=seleccionados.map(id=>{
+    for (const comp of CFG().sistemas){
+      if (!DB.compresores[comp]) continue;
+      const item=[...DB.compresores[comp].motores.map(m=>({comp,id:m.id,nombre:m.nombreReal||`Motor V${m.numero}`,hp:m.hp})),...DB.compresores[comp].auxiliares.map(a=>({comp,id:a.id,nombre:a.nombre,hp:a.hp}))].find(x=>x.id===id);
+      if (item) return calcularAnalisisElectrico(item);
+    }
+    return null;
+  }).filter(a=>a&&a.lectura);
+  const labels=analisis.map(a=>`${a.item.comp} ${a.item.nombre}`);
+  const ctxAmp=document.getElementById('chartAmperaje');
+  if (ctxAmp){ Chart.getChart(ctxAmp)?.destroy();
+    new Chart(ctxAmp,{type:'bar',data:{labels,datasets:[
+      {label:'L1 (A)',data:analisis.map(a=>a.dc?a.corriente:a.lectura.medicion.ampL1),backgroundColor:'#3E8CFF'},
+      {label:'L2 (A)',data:analisis.map(a=>a.dc?null:a.lectura.medicion.ampL2),backgroundColor:'#29C46A'},
+      {label:'L3 (A)',data:analisis.map(a=>a.dc?null:a.lectura.medicion.ampL3),backgroundColor:'#F2A93C'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8CA0C2',font:{size:10}}}},scales:{x:{ticks:{color:'#8CA0C2',font:{size:9}}},y:{ticks:{color:'#8CA0C2'}}}}});
+  }
+  const ctxVolt=document.getElementById('chartVoltaje');
+  if (ctxVolt){ Chart.getChart(ctxVolt)?.destroy();
+    new Chart(ctxVolt,{type:'bar',data:{labels,datasets:[
+      {label:'L1-L2 / DC (V)',data:analisis.map(a=>a.dc?a.voltaje:a.lectura.medicion.voltL1L2),backgroundColor:'#E062E8'},
+      {label:'L1-L3 (V)',data:analisis.map(a=>a.dc?null:a.lectura.medicion.voltL1L3),backgroundColor:'#3FC7E0'},
+      {label:'L2-L3 (V)',data:analisis.map(a=>a.dc?null:a.lectura.medicion.voltL2L3),backgroundColor:'#98A6C2'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8CA0C2',font:{size:10}}}},scales:{x:{ticks:{color:'#8CA0C2',font:{size:9}}},y:{ticks:{color:'#8CA0C2'}}}}});
+  }
+}
+function renderReporteIndicadoresGerencia(compList){
+  compList=compList||getSelectedCompresores();
+  const k=computeMetrics(compList);
+  const compsOperativos=compList.filter(c=>DB.compresores[c]&&DB.compresores[c].compresorEstado!=="FUERA_DE_SERVICIO").length;
+  const compsFuera=compList.length-compsOperativos;
+  const megadoPend=allItems(compList).filter(it=>!it.ultimoMegado||daysAgo(it.ultimoMegado)>365).length;
+  const sinBateria=compList.filter(bancoBateriasFaltante).length;
+  const mantMes=DB.mantenimiento.filter(r=>compList.includes(r.comp) && daysAgo(new Date(r.fecha).toISOString())<=30).length;
+  const cambios30=DB.historial.filter(r=>compList.includes(r.comp) && daysAgo(r.ts)<=30).length;
+  let airActivos=0,airFuera=0,airStandBy=0;
+  (CFG().sistemasAire||[]).forEach(comp=>{ const est=(DB.compresoresAire[comp]||{}).estado||"ACTIVO"; if(est==="ACTIVO") airActivos++; else if(est==="FUERA_DE_SERVICIO") airFuera++; else if(est==="STAND_BY") airStandBy++; });
+  const ranking=compList.map(c=>{ if(!DB.compresores[c]) return null; return {c,pct:compKPI(c).pct}; }).filter(Boolean).sort((a,b)=>a.pct-b.pct);
+  const peor=ranking[0],mejor=ranking[ranking.length-1];
+  return `
+    <div class="report-grid">
+      <div class="metric-card big" style="--metric-c:#29C46A;"><div class="metric-val">${k.disponibilidad}%</div><div class="metric-lbl">Disponibilidad</div></div>
+      <div class="metric-card big" style="--metric-c:#F2A93C;"><div class="metric-val">${compsOperativos}/${compList.length}</div><div class="metric-lbl">${CFG().terminoPlural} operativos</div></div>
+      <div class="metric-card big" style="--metric-c:#F14848;"><div class="metric-val">${compsFuera}</div><div class="metric-lbl">Fuera de servicio</div></div>
+      <div class="metric-card big" style="--metric-c:#3E8CFF;"><div class="metric-val">${k.alarmas}</div><div class="metric-lbl">Equipos con novedad</div></div>
+      <div class="metric-card big" style="--metric-c:#E062E8;"><div class="metric-val">${megadoPend}</div><div class="metric-lbl">Pendientes de megado</div></div>
+      <div class="metric-card big" style="--metric-c:#98A6C2;"><div class="metric-val">${sinBateria}</div><div class="metric-lbl">Sin banco de baterías</div></div>
+      <div class="metric-card big" style="--metric-c:#F2A93C;"><div class="metric-val">${mantMes}</div><div class="metric-lbl">Mantenimientos (30 d)</div></div>
+      <div class="metric-card big" style="--metric-c:#29C46A;"><div class="metric-val">${cambios30}</div><div class="metric-lbl">Cambios de estado (30 d)</div></div>
+      ${CFG().usaAire?`<div class="metric-card big" style="--metric-c:#29C46A;"><div class="metric-val">${airActivos}</div><div class="metric-lbl">Compresores Aire Activos</div></div><div class="metric-card big" style="--metric-c:#F2A93C;"><div class="metric-val">${airStandBy}</div><div class="metric-lbl">Compresores Aire Respaldo</div></div><div class="metric-card big" style="--metric-c:#F14848;"><div class="metric-val">${airFuera}</div><div class="metric-lbl">Compresores Aire Fuera</div></div>`:""}
+    </div>
+    <div class="report-grid">
+      <div class="report-card"><h4>Menor disponibilidad</h4>${peor?`<div class="bar-row"><div class="lbl mono">${peor.c}</div><div class="bar-track"><div class="bar-fill" style="width:${peor.pct}%;background:#F14848;"></div></div><div class="val">${peor.pct}%</div></div>`:'<div class="dim">Sin datos.</div>'}</div>
+      <div class="report-card"><h4>Mayor disponibilidad</h4>${mejor?`<div class="bar-row"><div class="lbl mono">${mejor.c}</div><div class="bar-track"><div class="bar-fill" style="width:${mejor.pct}%;background:#29C46A;"></div></div><div class="val">${mejor.pct}%</div></div>`:'<div class="dim">Sin datos.</div>'}</div>
+    </div>
+    <div class="report-card"><h4>Nota Gerencial</h4><p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:0;">Área de <b style="color:var(--text)">${CFG().label}</b>: disponibilidad de <b style="color:var(--text)">${k.disponibilidad}%</b>. Atender <b style="color:var(--text)">${k.alarmas}</b> equipos con novedad.</p></div>`;
+}
+
+/* ================== EXPORTACIÓN ================== */
+function downloadBlob(content,filename,type){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function csvEscape(v){ if (v===null||v===undefined) return ""; const s=String(v).replace(/"/g,'""'); return /[",\n]/.test(s)?`"${s}"`:s; }
+function toCSV(headers,rows){ return "\uFEFF"+[headers.join(","),...rows.map(r=>r.map(csvEscape).join(","))].join("\r\n"); }
+function exportDashboardCSV(){
+  const items=allItems();
+  const csv=toCSV(["Área",CFG().terminoSingular,"Tipo","Elemento","Estado","TAG","Serial","HP","Amperaje L1","Amperaje L2","Amperaje L3","Último Megado","Observación","Última actualización","Usuario"],
+    items.map(it=>[CFG().label,it.comp,it.tipo==="motor"?"Motor":"Auxiliar",it.etiqueta,ESTADOS[it.estado].label,it.tag||"",it.serial||"",it.hp||"",it.ampL1??"",it.ampL2??"",it.ampL3??"",it.ultimoMegado?fmtDate(it.ultimoMegado):"",it.observacion,fmtDateTime(it.actualizado),it.tecnico]));
+  downloadBlob(csv,`SIGIM_${AREA}_Estado_Equipos_${todayStr()}.csv`,"text/csv;charset=utf-8;");
+  showToast("✓ Exportado a CSV");
+}
+function exportHistorialCSV(){
+  const csv=toCSV(["Área","Fecha/Hora",CFG().terminoSingular,"Elemento","Estado anterior","Estado nuevo","Usuario","Observación"],
+    DB.historial.map(r=>[CFG().label,fmtDateTime(r.ts),r.comp,r.elemento,ESTADOS[r.estadoAnterior]?ESTADOS[r.estadoAnterior].label:r.estadoAnterior,ESTADOS[r.estadoNuevo]?ESTADOS[r.estadoNuevo].label:r.estadoNuevo,r.tecnico,r.observacion]));
+  downloadBlob(csv,`SIGIM_${AREA}_Historial_${todayStr()}.csv`,"text/csv;charset=utf-8;");
+  showToast("✓ Historial exportado");
+}
+function exportMantCSV(){
+  function resumenExtra(r){
+    if (r.checklist) return `Checklist ${r.checklist.completadas.length}/${r.checklist.tareas.length}: ${r.checklist.completadas.join(" | ")}`;
+    if (r.autonomia) return `Autonomía: ${r.autonomia.filter(l=>l.voltaje!==null||l.corriente!==null).length}/12 lecturas`;
+    if (r.inspeccionBaterias) return `Voltaje general banco: ${r.inspeccionBaterias.voltajeGeneral??"—"} V`;
+    if (r.noPlanificado) return `Solicitante: ${r.noPlanificado.solicitante} | Falla: ${r.noPlanificado.falla} | Reportado: ${r.noPlanificado.fechaReporte} vía ${r.noPlanificado.metodoReporte}`;
+    return "";
+  }
+  const csv=toCSV(["Área","Fecha",CFG().terminoSingular,"Equipo","Especialidad","Tipo","Resultado","Usuario","Amp L1","Amp L2","Amp L3","Volt L1-L2","Volt L1-L3","Volt L2-L3","Detalle","Observación"],
+    DB.mantenimiento.map(r=>[CFG().label,r.fecha,r.comp,r.equipo,r.especialidad||"ELECTRICIDAD",r.tipoPrueba,r.resultado,r.tecnico,
+      r.medicion?r.medicion.ampL1??"":"", r.medicion?r.medicion.ampL2??"":"", r.medicion?r.medicion.ampL3??"":"",
+      r.medicion?r.medicion.voltL1L2??"":"", r.medicion?r.medicion.voltL1L3??"":"", r.medicion?r.medicion.voltL2L3??"":"",
+      resumenExtra(r),r.observacion]));
+  downloadBlob(csv,`SIGIM_${AREA}_Mantenimiento_${todayStr()}.csv`,"text/csv;charset=utf-8;");
+  showToast("✓ Mantenimiento exportado");
+}
+document.getElementById("btn-export-json").addEventListener("click",()=>{
+  downloadBlob(JSON.stringify(DB,null,2),`SIGIM_${AREA}_Respaldo_${todayStr()}.json`,"application/json");
+  showToast("✓ Respaldo JSON descargado");
+});
+document.getElementById("btn-export-blank").addEventListener("click",()=>{
+  const blank=buildBlankDB();
+  downloadBlob(JSON.stringify(blank,null,2),`SIGIM_${AREA}_Plantilla_En_Blanco_${todayStr()}.json`,"application/json");
+  showToast("✓ Plantilla en blanco descargada");
+});
+document.getElementById("btn-import-json").addEventListener("click",()=>document.getElementById("file-import").click());
+document.getElementById("file-import").addEventListener("change",(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{ const data=JSON.parse(reader.result);
+      if (!data.compresores) throw new Error("Formato inválido");
+      if (confirm("Esto reemplazará todos los datos actuales del área por los del respaldo. ¿Continuar?")){
+        DB=migrateDB(data); persist(); render(); showToast("✓ Respaldo restaurado correctamente");
+      }
+    }catch(err){ alert("El archivo seleccionado no es un respaldo válido."); }
+  };
+  reader.readAsText(file); e.target.value="";
+});
+
+/* ================== NAVEGACIÓN / RENDER ================== */
+document.querySelectorAll(".nav-btn[data-view]").forEach(b=>b.addEventListener("click",()=>{ UI.view=b.dataset.view; render(); closeMobileSidebar(); }));
+function openMobileSidebar(){ document.getElementById("sidebar").classList.add("open"); document.getElementById("sidebar-overlay").classList.add("open"); }
+function closeMobileSidebar(){ document.getElementById("sidebar").classList.remove("open"); document.getElementById("sidebar-overlay").classList.remove("open"); }
+document.getElementById("btn-hamburger").addEventListener("click",openMobileSidebar);
+document.getElementById("sidebar-overlay").addEventListener("click",closeMobileSidebar);
+document.getElementById("sidebar").addEventListener("click",e=>{ if (e.target.closest("button")) setTimeout(closeMobileSidebar,150); });
+function render(){
+  renderNav(); renderMetrics(); renderToolbar(); renderLegend();
+  if (UI.view==="dashboard") renderDashboard();
+  else if (UI.view==="historial") renderHistorial();
+  else if (UI.view==="mantenimiento") renderMantenimiento();
+  else if (UI.view==="reportes") renderReportes();
+}
+
+/* ================== CAMBIO DE ÁREA ================== */
+function switchArea(newArea,firstRun){
+  if (!AREAS[newArea]) return;
+  if (!firstRun && DB){ saveDBLocal(DB); }
+  AREA=newArea;
+  SIGMA_ELEMENTOS_EXTRA=CFG().sigmaExtra||{};
+  SEP_ELEMENTOS=CFG().sepElementos||{};
+  window.SIGAE_AREA=CFG().sigaeArea;
+  const areaSel=document.getElementById("area-select"); if(areaSel) areaSel.value=newArea;
+  const brandLbl=document.getElementById("brand-area-label"); if(brandLbl) brandLbl.textContent=CFG().brandLabel;
+  document.title=`SIGIM · COSJ · ${CFG().label}`;
+  DB=loadDB();
+  resetUI();
+  render();
+  if (FB_OK && currentUser){
+    initRealtimeSync();
+  }
+}
+document.getElementById("area-select").addEventListener("change",e=>{
+  const nuevo=e.target.value;
+  if (nuevo===AREA){ return; }
+  switchArea(nuevo,false);
+  showToast(`✓ Área cambiada a ${CFG().label}`);
+});
+
+/* ================== NOMBRE DEL USUARIO ================== */
+document.getElementById("user-name").value=localStorage.getItem("sigim_nombre_usuario")||"";
+document.getElementById("user-name").addEventListener("change",e=>{
+  const nombre=e.target.value.trim();
+  localStorage.setItem("sigim_nombre_usuario", nombre);
+  if (FB_OK && currentUser){
+    dbRT.ref(`sigim/usuarios/${currentUser.uid}`).set({
+      nombre: nombre,
+      ultimoAcceso: nowISO()
+    }).catch(err=>console.warn("No se pudo guardar usuario:", err));
+  }
+});
+
+/* ================== ARRANQUE ================== */
+switchArea('compresion',true);
+
+if (FB_OK){
+  initAuth();
+} else {
+  // Modo local sin Firebase
+  setSyncStatus('offline');
+}
+</script>
+</body>
+</html>
