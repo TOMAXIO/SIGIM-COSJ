@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>COSJ · Gestión de Activos y Mantenimiento</title>
+<!-- Enlace al Manifest para la instalación en móviles -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#131E32">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* Aquí mantienes todas tus variables CSS originales */
+  :root { --bg: #0A0F1A; --panel: #111A2B; --amber: #F2A93C; --c-operativo: #29C46A; /* ... resto de tus variables ... */ }
+  /* (Pega aquí todo el bloque de estilos CSS de tus archivos originales) */
+  
+  /* Nuevos estilos para el Selector de Área y Estado de Red */
+  #area-selector {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 13px; outline: none;
+  }
+  .network-badge {
+    padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase;
+  }
+  .network-online { background: rgba(41,196,106,0.2); color: #29C46A; }
+  .network-offline { background: rgba(241,72,72,0.2); color: #F14848; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="topbar">
+    <button id="btn-hamburger">☰</button>
+    <div class="brand">
+      <div class="brand-mark">COSJ</div>
+      <div class="brand-text">
+        <div class="t1">Gestión de Activos Unificada</div>
+        <div class="t2">Centro Operativo San Joaquín</div>
+      </div>
+    </div>
+    
+    <!-- Selector de Áreas -->
+    <select id="area-selector" onchange="cambiarArea(this.value)">
+      <option value="COMPRESION">Área de Compresión</option>
+      <option value="SEPARACION">Área de Separación y Tratamiento</option>
+    </select>
+
+    <div class="spacer"></div>
+    
+    <!-- Indicador de Red y Cola Offline -->
+    <div id="network-status" class="network-badge network-online">Online</div>
+    
+    <div class="user-chip">
+      <span class="user-dot"></span>
+      <input id="user-name" type="text" placeholder="Ficha / Nombre Técnico" readonly onclick="identificarTecnico()">
+    </div>
+  </div>
+
+  <!-- Contenedor Principal (Sidebar y Main iguales a tus archivos) -->
+  <div id="body-row">
+    <!-- ... (Pega aquí la estructura de tu #sidebar y #main) ... -->
+    <div id="main">
+       <div id="metric-strip"></div>
+       <div id="toolbar"></div>
+       <div id="content"></div>
+       <div id="legend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- (Pega aquí tus Modales y Drawers originales) -->
+
+<script>
+"use strict";
+
+// 1. REGISTRO DEL SERVICE WORKER (Para instalación PWA y funcionamiento Offline)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('Service Worker registrado con éxito.', reg))
+      .catch(err => console.error('Error al registrar el Service Worker:', err));
+  });
+}
+
+// 2. MODELO DE DATOS UNIFICADO
+const AREAS_CONFIG = {
+  COMPRESION: {
+    nombre: "Compresión",
+    compresores: ["TB-1","TB-2","TB-3","TB-4","TB-5","TA-1","TA-2","TA-3","TA-4"],
+    compresoresAire: ["CA-1", "CA-2", "CA-3"],
+    dbKey: "cosj_activos_compresion_db"
+  },
+  SEPARACION: {
+    nombre: "Separación y Tratamiento",
+    compresores: ["ST-01-FE", "ST-02-SB", "ST-03-BCAP", "ST-04-BCHP", "ST-05-BAI", "ST-06-GCMP", "ST-07-SAP", "ST-08-TR1", "ST-09-TR2", "ST-10-SIC", "ST-11-TI1", "ST-12-TI2", "ST-13-TAI1", "ST-14-TAI2", "ST-15-TAC1", "ST-16-TAC2", "ST-17-TCR", "ST-18-K", "ST-19-SDDV"],
+    compresoresAire: [],
+    dbKey: "cosj_activos_separacion_db"
+  }
+};
+
+let areaActual = "COMPRESION";
+let DB = {}; // Base de datos cargada en memoria
+
+// 3. GESTIÓN DE ESTADO DE RED Y SINCRONIZACIÓN
+window.addEventListener('online', () => {
+  document.getElementById('network-status').className = 'network-badge network-online';
+  document.getElementById('network-status').innerText = 'Online - Sincronizando...';
+  sincronizarDatosPendientes();
+});
+
+window.addEventListener('offline', () => {
+  document.getElementById('network-status').className = 'network-badge network-offline';
+  document.getElementById('network-status').innerText = 'Offline - Guardando Local';
+});
+
+// 4. IDENTIFICACIÓN AUTOMÁTICA DEL TÉCNICO
+function identificarTecnico() {
+  const nombre = prompt("Ingrese su Nombre y Ficha (Ej. Tomás Mendoza - Ficha 12345):", localStorage.getItem("cosj_tecnico") || "");
+  if(nombre) {
+    localStorage.setItem("cosj_tecnico", nombre);
+    document.getElementById("user-name").value = nombre;
+  }
+}
+document.getElementById("user-name").value = localStorage.getItem("cosj_tecnico") || "Técnico no identificado";
+
+// 5. CAMBIO DE ÁREA DINÁMICO
+function cambiarArea(nuevaArea) {
+  areaActual = nuevaArea;
+  cargarDatosArea(areaActual);
+  renderDashboard();
+  renderMetrics();
+}
+
+function cargarDatosArea(areaId) {
+  const config = AREAS_CONFIG[areaId];
+  const raw = localStorage.getItem(config.dbKey);
+  if (raw) {
+    DB = JSON.parse(raw);
+  } else {
+    DB = construirDBInicial(config);
+  }
+}
+
+function persistirDatos() {
+  const config = AREAS_CONFIG[areaActual];
+  DB.meta.ultimaModificacion = new Date().toISOString();
+  localStorage.setItem(config.dbKey, JSON.stringify(DB));
+  
+  // Guardar en IndexedDB para la sincronización en background
+  guardarEnColaDeSincronizacion(DB);
+}
+
+// Lógica de Sincronización a Base de Datos (Ej. Firebase / API propia)
+async function sincronizarDatosPendientes() {
+  // Aquí se leería de IndexedDB y se enviaría mediante fetch() a la BD central.
+  // Una vez enviado con éxito, se actualiza el status.
+  setTimeout(() => {
+    document.getElementById('network-status').innerText = 'Sincronizado ✓';
+  }, 1500);
+}
+
+// Inicialización
+cargarDatosArea(areaActual);
+// (Aquí integras el resto de tus funciones: renderDashboard, openDrawer, etc., adaptadas para leer del objeto dinámico)
+
+</script>
+</body>
+</html>
