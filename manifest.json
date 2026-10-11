@@ -2,7 +2,7 @@
   "name": "SIGIM · COSJ",
   "short_name": "SIGIM",
   "description": "Sistema Integrado de Gestión de Inspección y Mantenimiento · Centro Operativo San Joaquín",
-  "start_url": "./SIGIM.html",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0F1A",
